@@ -7,6 +7,9 @@ import numpy as np
 from .control_affine_system import ControlAffineSystem
 from neural_clbf.systems.utils import grav, Scenario, ScenarioList
 
+import pysindy as ps
+from pysindy import SINDy
+
 
 class InvertedPendulumSINDy(ControlAffineSystem):
     """
@@ -42,10 +45,10 @@ class InvertedPendulumSINDy(ControlAffineSystem):
     def __init__(
         self,
         nominal_params: Scenario,
+        learned_model: SINDy,
         dt: float = 0.01,
         controller_dt: Optional[float] = None,
         scenarios: Optional[ScenarioList] = None,
-        # TODO: model: SINDY object
     ):
         """
         Initialize the inverted pendulum.
@@ -58,13 +61,12 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         raises:
             ValueError if nominal_params are not valid for this system
         """
-        super().__init__(
-            nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios
-        )
 
-        # TODO: extract indices for f(x) and g(x) from the model
-        """
-        feature_names = model.get_feature_names()
+        # SINDY model
+        self.model = learned_model
+
+        # Get indices of the SINDy regressor corresponding to each state and control input
+        feature_names = self.model.get_feature_names()
         idx_x = [] # Indices for f(x)
         idx_u = [] # Indices for g(x)*u
         for i in range(len(feature_names)):
@@ -72,7 +74,13 @@ class InvertedPendulumSINDy(ControlAffineSystem):
                 idx_u.append(i)
             else:
                 idx_x.append(i)
-        """
+        self.idx_x = idx_x
+        self.idx_u = idx_u
+
+        # TODO: Check if use_linearized_controller = True/False matters
+        super().__init__(
+            nominal_params, dt=dt, controller_dt=controller_dt, use_linearized_controller=False, scenarios=scenarios
+        )
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
@@ -84,15 +92,6 @@ class InvertedPendulumSINDy(ControlAffineSystem):
             True if parameters are valid, False otherwise
         """
         valid = True
-        # Make sure all needed parameters were provided
-        valid = valid and "m" in params
-        valid = valid and "L" in params
-        valid = valid and "b" in params
-
-        # Make sure all parameters are physically valid
-        valid = valid and params["m"] > 0
-        valid = valid and params["L"] > 0
-        valid = valid and params["b"] > 0
 
         return valid
 
@@ -190,21 +189,17 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         f = torch.zeros((batch_size, self.n_dims, 1))
         f = f.type_as(x)
 
-        # Get tate variables
-        #theta = x[:, InvertedPendulumSINDy.THETA]
-        #theta_dot = x[:, InvertedPendulumSINDy.THETA_DOT]
-        # TODO: compare data structures between tensor-x and AxesArray-x from SINDy
-        
-        Theta = self.model.get_regressor(x, u = np.array([[1.0]]))
+        # Compute f(x) using the SINDy model
+        Theta = self.model.get_regressor(x.detach().numpy(), u = np.array([[1.0]]))
         coeff = self.model.optimizer.coef_
         Theta_x = Theta[:,self.idx_x]
         coeff_x = coeff[:,self.idx_x]
         f_of_x = Theta_x @ coeff_x.T
 
-        # The derivatives of theta is just its velocity
-        f[:, InvertedPendulumSINDy.THETA, 0] = f_of_x[:,0]
+        # Convert AxesArray to tensor
+        f_of_x = torch.tensor(f_of_x)
 
-        # Acceleration in theta depends on theta via gravity and theta_dot via damping
+        f[:, InvertedPendulumSINDy.THETA, 0] = f_of_x[:,0]
         f[:, InvertedPendulumSINDy.THETA_DOT, 0] = f_of_x[:,1]
 
         return f
@@ -225,11 +220,15 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         g = torch.zeros((batch_size, self.n_dims, self.n_controls))
         g = g.type_as(x)
 
-        Theta = self.model.get_regressor(x, u = np.array([[1.0]]))
+        # Compute g(x) using the SINDy model
+        Theta = self.model.get_regressor(x.detach().numpy(), u = np.array([[1.0]]))
         coeff = self.model.optimizer.coef_
         Theta_u = Theta[:,self.idx_u]
         coeff_u = coeff[:,self.idx_u]
         g_of_x = Theta_u @ coeff_u.T
+
+        # Convert AxesArray to tensor
+        g_of_x = torch.tensor(g_of_x)
 
         # Effect on theta dot
         g[:, InvertedPendulumSINDy.THETA_DOT, InvertedPendulumSINDy.U] = g_of_x[:,0]

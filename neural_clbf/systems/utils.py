@@ -13,7 +13,6 @@ grav = 9.80665
 Scenario = Dict[str, float]
 ScenarioList = List[Scenario]
 
-
 def lqr(
     A: np.ndarray,
     B: np.ndarray,
