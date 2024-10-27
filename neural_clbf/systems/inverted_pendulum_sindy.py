@@ -190,7 +190,7 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         f = f.type_as(x)
 
         # Compute f(x) using the SINDy model
-        Theta = self.model.get_regressor(x.detach().numpy(), u = np.array([[1.0]]))
+        Theta = self.model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
         coeff = self.model.optimizer.coef_
         Theta_x = Theta[:,self.idx_x]
         coeff_x = coeff[:,self.idx_x]
@@ -221,7 +221,7 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         g = g.type_as(x)
 
         # Compute g(x) using the SINDy model
-        Theta = self.model.get_regressor(x.detach().numpy(), u = np.array([[1.0]]))
+        Theta = self.model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
         coeff = self.model.optimizer.coef_
         Theta_u = Theta[:,self.idx_u]
         coeff_u = coeff[:,self.idx_u]
