@@ -82,6 +82,10 @@ class InvertedPendulumSINDy(ControlAffineSystem):
             nominal_params, dt=dt, controller_dt=controller_dt, use_linearized_controller=False, scenarios=scenarios
         )
 
+        # Since we aren't using a linearized controller, we need to provide
+        # some guess for a Lyapunov matrix
+        self.P = torch.eye(self.n_dims)
+
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
 
@@ -234,3 +238,33 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         g[:, InvertedPendulumSINDy.THETA_DOT, InvertedPendulumSINDy.U] = g_of_x[:,0]
 
         return g
+    
+    def u_nominal(
+        self, x: torch.Tensor, params: Optional[Scenario] = None
+    ) -> torch.Tensor:
+        """
+        Compute the nominal control for the nominal parameters, using LQR unless
+        overridden
+
+        args:
+            x: bs x self.n_dims tensor of state
+            params: the model parameters used
+        returns:
+            u_nominal: bs x self.n_controls tensor of controls
+        """
+        # Set nominal control to zero
+        u_nominal = torch.zeros((x.shape[0], self.n_controls)).type_as(x)
+
+        # Adjust for the equilibrium setpoint
+        u = u_nominal + self.u_eq.type_as(x)
+
+        # Clamp given the control limits
+        upper_u_lim, lower_u_lim = self.control_limits
+        for dim_idx in range(self.n_controls):
+            u[:, dim_idx] = torch.clamp(
+                u[:, dim_idx],
+                min=lower_u_lim[dim_idx].item(),
+                max=upper_u_lim[dim_idx].item(),
+            )
+
+        return u
