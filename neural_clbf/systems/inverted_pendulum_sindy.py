@@ -203,6 +203,10 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         # Convert AxesArray to tensor
         f_of_x = torch.tensor(f_of_x)
 
+        # ISSUE: Converting x to a numpy array and then converting it back to a tensor is causing the loss of gradient,
+        #        making the Jacobian (needed for linearizing the model and obtaining the LQR gain) always zero. 
+        # TODO: The best solution seems to be making the in/output of model.get_regressor() both tensors
+
         f[:, InvertedPendulumSINDy.THETA, 0] = f_of_x[:,0]
         f[:, InvertedPendulumSINDy.THETA_DOT, 0] = f_of_x[:,1]
 
