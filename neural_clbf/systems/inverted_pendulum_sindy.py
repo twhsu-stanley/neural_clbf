@@ -252,8 +252,10 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         returns:
             u_nominal: bs x self.n_controls tensor of controls
         """
-        # Set nominal control to zero
-        u_nominal = torch.zeros((x.shape[0], self.n_controls)).type_as(x)
+        # Compute nominal control from feedback + equilibrium control
+        K = torch.tensor([[18.3128,  5.8956]])
+        goal = self.goal_point.squeeze().type_as(x)
+        u_nominal = -(K @ (x - goal).T).T
 
         # Adjust for the equilibrium setpoint
         u = u_nominal + self.u_eq.type_as(x)

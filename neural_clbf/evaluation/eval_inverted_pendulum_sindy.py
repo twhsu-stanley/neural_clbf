@@ -9,7 +9,8 @@ matplotlib.use('TkAgg')
 def plot_inverted_pendulum_sindy():
     # Load the checkpoint file. This should include the experiment suite used during
     # training.
-    log_file = "logs/inverted_pendulum_sindy/commit_788e0c5/version_2/checkpoints/epoch=50-step=7190.ckpt"
+    #log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_1/checkpoints/epoch=50-step=7190.ckpt"
+    log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt"
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
     # Update parameters

@@ -39,7 +39,7 @@ simulation_dt = 0.01
 
 def main(args):
     # Define the scenarios
-    nominal_params = None #{"m": 1.0, "L": 1.0, "b": 0.01}
+    nominal_params = {"m": 1.0, "L": 1.0, "b": 0.01}
     scenarios = [
         nominal_params,
         # {"m": 1.25, "L": 1.0, "b": 0.01},  # uncomment to add robustness
