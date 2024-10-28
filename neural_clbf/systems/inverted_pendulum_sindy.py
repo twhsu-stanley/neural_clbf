@@ -235,7 +235,7 @@ class InvertedPendulumSINDy(ControlAffineSystem):
         g_of_x = torch.tensor(g_of_x)
 
         # Effect on theta dot
-        g[:, InvertedPendulumSINDy.THETA_DOT, InvertedPendulumSINDy.U] = g_of_x[:,0]
+        g[:, InvertedPendulumSINDy.THETA_DOT, InvertedPendulumSINDy.U] = g_of_x[:,1]
 
         return g
     
