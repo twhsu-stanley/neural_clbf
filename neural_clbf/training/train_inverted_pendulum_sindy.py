@@ -47,8 +47,8 @@ def main(args):
         # {"m": 1.25, "L": 1.25, "b": 0.01},
     ]
 
-    # TODO: load the SINDY model
-    with open('../pysindy/control_affine_models/saved_models/inverted_pendulum_sindy', 'rb') as file:
+    # Load the SINDY model
+    with open('../pysindy/control_affine_models/saved_models/model_inverted_pendulum_sindy', 'rb') as file:
         model = pickle.load(file)
 
     # Define the dynamics model
