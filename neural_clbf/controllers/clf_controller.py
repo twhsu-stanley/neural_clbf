@@ -31,7 +31,6 @@ class CLFController(Controller):
         clf_relaxation_penalty: float = 50.0,
         controller_period: float = 0.01,
         disable_gurobi: bool = False,
-        conformal_prediction: bool = False,
     ):
         """Initialize the controller.
 
@@ -124,42 +123,6 @@ class CLFController(Controller):
         self.differentiable_qp_solver = CvxpyLayer(
             problem, variables=variables, parameters=parameters
         )
-
-        # If conformal prediction is implemented,
-        # 1) initialize cp_quantile = 0
-        # 2) create a QP solver for it
-        if conformal_prediction:
-            self.cp_quantile = 0
-
-            cp_quantile_param = cp.Parameter(1, nonneg=True)
-            
-            constraints = []
-            # TODO: When CP is implemented, there should only be one "scenario"
-            for i in range(len(self.scenarios)):
-                # CLF decrease constraint (with relaxation)
-                constraints.append(
-                    Lf_V_params[i]
-                    + Lg_V_params[i] @ u
-                    + self.clf_lambda * V_param
-                    + cp_quantile_param
-                    - clf_relaxations[i]
-                    <= 0
-                )
-
-            # Control limit constraints
-            upper_lim, lower_lim = self.dynamics_model.control_limits
-            for control_idx in range(self.dynamics_model.n_controls):
-                constraints.append(u[control_idx] >= lower_lim[control_idx])
-                constraints.append(u[control_idx] <= upper_lim[control_idx])
-
-            problem = cp.Problem(objective, constraints)
-            assert problem.is_dpp()
-            variables = [u] + clf_relaxations
-            parameters = Lf_V_params + Lg_V_params
-            parameters += [V_param, cp_quantile_param, u_ref_param, clf_relaxation_penalty_param]
-            self.differentiable_qp_cp_solver = CvxpyLayer(
-                problem, variables=variables, parameters=parameters
-            )
 
     def V_with_jacobian(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Computes the CLF value and its Jacobian
@@ -450,13 +413,19 @@ class CLFController(Controller):
             return self._solve_CLF_QP_gurobi(
                 x, u_ref, V, Lf_V, Lg_V, relaxation_penalty
             )
-
-    def solve_CLF_QP_CP(
+        
+    def u(self, x):
+        """Get the control input for a given state by solving CLF-QP"""
+        u, _ = self.solve_CLF_QP(x)
+        return u
+    
+    def u_CLF_QP_CP(
         self,
         x,
+        qp_cp_solver: CvxpyLayer,
+        cp_quantile,
         relaxation_penalty: Optional[float] = None,
         u_ref: Optional[torch.Tensor] = None,
-        requires_grad: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Determine the control input for a given state using a QP with conformal prediction
 
@@ -492,9 +461,6 @@ class CLFController(Controller):
         if relaxation_penalty is None:
             relaxation_penalty = self.clf_relaxation_penalty
 
-        # Use CVXPyLayers as the solver
-        # TODO: Add solver using gurobi
-
         # The differentiable solver must allow relaxation
         relaxation_penalty = min(relaxation_penalty, 1e6)
 
@@ -505,12 +471,12 @@ class CLFController(Controller):
         for i in range(self.n_scenarios):
             params.append(Lg_V[:, i, :])
         params.append(V.reshape(-1, 1))
-        params.append(self.cp_quantile)
+        params.append(torch.tensor([cp_quantile]).type_as(x))
         params.append(u_ref)
         params.append(torch.tensor([relaxation_penalty]).type_as(x))
 
-        # We've already created a parameterized QP solver, so we can use that
-        result = self.differentiable_qp_cp_solver(
+        # Solve the QP problem
+        result = qp_cp_solver(
             *params,
             solver_args={"max_iters": 1000},
         )
@@ -520,16 +486,3 @@ class CLFController(Controller):
         r_result = torch.hstack(result[1:])
 
         return u_result.type_as(x), r_result.type_as(x)
-        
-    def u(self, x):
-        """Get the control input for a given state by solving CLF-QP"""
-        u, _ = self.solve_CLF_QP(x)
-        return u
-
-    def u_cp(self, x):
-        """Get the control input for a given state  by solving CLF-QP with conformal prediction"""
-        u, _ = self.solve_CLF_QP_CP(x)
-        return u
-    
-    def set_cp_quantile(self, cp_quantile):
-        self.cp_quantile = cp_quantile

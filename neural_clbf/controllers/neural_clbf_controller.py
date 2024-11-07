@@ -55,7 +55,6 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         add_nominal: bool = False,
         normalize_V_nominal: bool = False,
         disable_gurobi: bool = False,
-        conformal_prediction: bool = False,
     ):
         """Initialize the controller.
 
@@ -94,7 +93,6 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
             clf_relaxation_penalty=clf_relaxation_penalty,
             controller_period=controller_period,
             disable_gurobi=disable_gurobi,
-            conformal_prediction=conformal_prediction,
         )
         self.save_hyperparameters()
 

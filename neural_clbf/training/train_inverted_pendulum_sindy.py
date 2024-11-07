@@ -100,18 +100,7 @@ def main(args):
         n_sims_per_start=1,
         t_sim=5.0,
     )
-    rollout_experiment_cp = RolloutStateSpaceExperimentCP(
-        "Rollout",
-        start_x,
-        InvertedPendulumSINDy.THETA,
-        "$\\theta$",
-        InvertedPendulumSINDy.THETA_DOT,
-        "$\\dot{\\theta}$",
-        scenarios=scenarios,
-        n_sims_per_start=1,
-        t_sim=5.0,
-    )
-    experiment_suite = ExperimentSuite([V_contour_experiment, rollout_experiment, rollout_experiment_cp])
+    experiment_suite = ExperimentSuite([V_contour_experiment, rollout_experiment])
 
     # Initialize the controller
     clbf_controller = NeuralCLBFController(
@@ -129,7 +118,6 @@ def main(args):
         epochs_per_episode=100,
         barrier=False,
         disable_gurobi=True,
-        conformal_prediction=True,
     )
 
     # Initialize the logger and trainer
@@ -147,7 +135,6 @@ def main(args):
     # Train
     torch.autograd.set_detect_anomaly(True)
     trainer.fit(clbf_controller)
-
 
 if __name__ == "__main__":
     parser = ArgumentParser()
