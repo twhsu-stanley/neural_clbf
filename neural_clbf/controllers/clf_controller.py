@@ -31,6 +31,7 @@ class CLFController(Controller):
         clf_relaxation_penalty: float = 50.0,
         controller_period: float = 0.01,
         disable_gurobi: bool = False,
+        conformal_prediction: bool = False,
     ):
         """Initialize the controller.
 
@@ -123,6 +124,42 @@ class CLFController(Controller):
         self.differentiable_qp_solver = CvxpyLayer(
             problem, variables=variables, parameters=parameters
         )
+
+        # If conformal prediction is implemented,
+        # 1) initialize cp_quantile = 0
+        # 2) create a QP solver for it
+        if conformal_prediction:
+            self.cp_quantile = 0
+
+            cp_quantile_param = cp.Parameter(1, nonneg=True)
+            
+            constraints = []
+            # TODO: When CP is implemented, there should only be one "scenario"
+            for i in range(len(self.scenarios)):
+                # CLF decrease constraint (with relaxation)
+                constraints.append(
+                    Lf_V_params[i]
+                    + Lg_V_params[i] @ u
+                    + self.clf_lambda * V_param
+                    + cp_quantile_param
+                    - clf_relaxations[i]
+                    <= 0
+                )
+
+            # Control limit constraints
+            upper_lim, lower_lim = self.dynamics_model.control_limits
+            for control_idx in range(self.dynamics_model.n_controls):
+                constraints.append(u[control_idx] >= lower_lim[control_idx])
+                constraints.append(u[control_idx] <= upper_lim[control_idx])
+
+            problem = cp.Problem(objective, constraints)
+            assert problem.is_dpp()
+            variables = [u] + clf_relaxations
+            parameters = Lf_V_params + Lg_V_params
+            parameters += [V_param, cp_quantile_param, u_ref_param, clf_relaxation_penalty_param]
+            self.differentiable_qp_cp_solver = CvxpyLayer(
+                problem, variables=variables, parameters=parameters
+            )
 
     def V_with_jacobian(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Computes the CLF value and its Jacobian
@@ -414,7 +451,85 @@ class CLFController(Controller):
                 x, u_ref, V, Lf_V, Lg_V, relaxation_penalty
             )
 
+    def solve_CLF_QP_CP(
+        self,
+        x,
+        relaxation_penalty: Optional[float] = None,
+        u_ref: Optional[torch.Tensor] = None,
+        requires_grad: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Determine the control input for a given state using a QP with conformal prediction
+
+        args:
+            x: bs x self.dynamics_model.n_dims tensor of state
+            relaxation_penalty: the penalty to use for CLF relaxation, defaults to
+                                self.clf_relaxation_penalty
+            u_ref: allows the user to supply a custom reference input, which will
+                   bypass the self.u_reference function. If provided, must have
+                   dimensions bs x self.dynamics_model.n_controls. If not provided,
+                   default to calling self.u_reference.
+            requires_grad: if True, use a differentiable layer
+        returns:
+            u: bs x self.dynamics_model.n_controls tensor of control inputs
+            relaxation: bs x 1 tensor of how much the CLF had to be relaxed in each
+                        case
+        """
+        # Get the value of the CLF and its Lie derivatives
+        V = self.V(x)
+        Lf_V, Lg_V = self.V_lie_derivatives(x)
+
+        # Get the reference control input as well
+        if u_ref is not None:
+            err_message = f"u_ref must have {x.shape[0]} rows, but got {u_ref.shape[0]}"
+            assert u_ref.shape[0] == x.shape[0], err_message
+            err_message = f"u_ref must have {self.dynamics_model.n_controls} cols,"
+            err_message += f" but got {u_ref.shape[1]}"
+            assert u_ref.shape[1] == self.dynamics_model.n_controls, err_message
+        else:
+            u_ref = self.u_reference(x)
+
+        # Apply default penalty if needed
+        if relaxation_penalty is None:
+            relaxation_penalty = self.clf_relaxation_penalty
+
+        # Use CVXPyLayers as the solver
+        # TODO: Add solver using gurobi
+
+        # The differentiable solver must allow relaxation
+        relaxation_penalty = min(relaxation_penalty, 1e6)
+
+        # Assemble list of params
+        params = []
+        for i in range(self.n_scenarios):
+            params.append(Lf_V[:, i, :])
+        for i in range(self.n_scenarios):
+            params.append(Lg_V[:, i, :])
+        params.append(V.reshape(-1, 1))
+        params.append(self.cp_quantile)
+        params.append(u_ref)
+        params.append(torch.tensor([relaxation_penalty]).type_as(x))
+
+        # We've already created a parameterized QP solver, so we can use that
+        result = self.differentiable_qp_cp_solver(
+            *params,
+            solver_args={"max_iters": 1000},
+        )
+
+        # Extract the results
+        u_result = result[0]
+        r_result = torch.hstack(result[1:])
+
+        return u_result.type_as(x), r_result.type_as(x)
+        
     def u(self, x):
-        """Get the control input for a given state"""
+        """Get the control input for a given state by solving CLF-QP"""
         u, _ = self.solve_CLF_QP(x)
         return u
+
+    def u_cp(self, x):
+        """Get the control input for a given state  by solving CLF-QP with conformal prediction"""
+        u, _ = self.solve_CLF_QP_CP(x)
+        return u
+    
+    def set_cp_quantile(self, cp_quantile):
+        self.cp_quantile = cp_quantile

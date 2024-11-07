@@ -34,8 +34,10 @@ def get_cp_inverted_pendulum_sindy():
 
     alpha = 0.05
     n = len(nc_score)
-    quantile = np.quantile(nc_score, np.ceil((n + 1) * (1 - alpha)) / n, interpolation="higher")
+    cp_quantile = np.quantile(nc_score, np.ceil((n + 1) * (1 - alpha)) / n, interpolation="higher")
 
+    # TODO: The above stpes should be incorporated into the training script immediately after trainer.fit(clbf_controller)
+    # TODO: Use neural_controller.set_cp_quantile(cp_quantile) before running experiment 
 
 if __name__ == "__main__":
     get_cp_inverted_pendulum_sindy()

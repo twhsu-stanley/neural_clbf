@@ -18,7 +18,7 @@ from neural_clbf.experiments import ExperimentSuite
 
 class NeuralCLBFController(pl.LightningModule, CLFController):
     """
-    A neural rCLBF controller. Differs from the CLFController in that it uses a
+    A neural CLBF controller. Differs from the CLFController in that it uses a
     neural network to learn the CLF, and it turns it from a CLF to a CLBF by making sure
     that a level set of the CLF separates the safe and unsafe regions.
 
@@ -55,6 +55,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         add_nominal: bool = False,
         normalize_V_nominal: bool = False,
         disable_gurobi: bool = False,
+        conformal_prediction: bool = False,
     ):
         """Initialize the controller.
 
@@ -93,6 +94,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
             clf_relaxation_penalty=clf_relaxation_penalty,
             controller_period=controller_period,
             disable_gurobi=disable_gurobi,
+            conformal_prediction=conformal_prediction,
         )
         self.save_hyperparameters()
 
