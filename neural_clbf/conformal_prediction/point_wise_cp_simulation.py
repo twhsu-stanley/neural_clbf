@@ -57,7 +57,7 @@ def create_clf_qp_cp_cvxpylayers_solver(neural_controller):
     assert problem.is_dpp()
     variables = [u] + [clf_relaxations]
     parameters = [Lf_V_params] + [Lg_V_params]
-    parameters += [V_param, cp_quantile_param, u_ref_param, clf_relaxation_penalty_param]#
+    parameters += [V_param, cp_quantile_param, u_ref_param, clf_relaxation_penalty_param]
     clf_qp_cp_solver = CvxpyLayer(
         problem, variables=variables, parameters=parameters
     )
@@ -79,13 +79,16 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     if hasattr(neural_controller, "device"):
         device = neural_controller.device  # type: ignore
     x_current = x_sim_start.to(device)
+    x_current2 = x_sim_start.to(device)
 
     # Simulate
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     u_current = torch.zeros(x_sim_start.shape[0], n_controls, device=device)
+    u_current2 = torch.zeros(x_sim_start.shape[0], n_controls, device=device)
     
     x_history = np.zeros((n_sims, n_dims, num_timesteps))
+    x_history2 = np.zeros((n_sims, n_dims, num_timesteps))
 
     for t in range(num_timesteps):
         # Compute control input by solving the CLF-QP-CP problem
@@ -94,8 +97,8 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
 
         # Simulate forward using the dynamics
         for i in range(n_sims):
-            # TODO: use the ground truth model
-            xdot = neural_controller.dynamics_model.closed_loop_dynamics(
+            # Use the ground truth model
+            xdot = neural_controller.dynamics_model.closed_loop_ground_truth_dynamics(
                 x_current[i, :].unsqueeze(0),
                 u_current[i, :].unsqueeze(0)
             )
@@ -103,10 +106,25 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
 
         x_history[:,:,t] = x_current.cpu().detach().numpy()
 
+        # Compute control input by solving the CLF-QP-CP problem
+        u_current2, _ = neural_controller.u_CLF_QP_CP(x_current2, clf_qp_cp_solver, point_wise_cp_quantile)
+
+        # Simulate forward using the dynamics
+        for i in range(n_sims):
+            # Use the learned model
+            xdot2 = neural_controller.dynamics_model.closed_loop_dynamics(
+                x_current2[i, :].unsqueeze(0),
+                u_current2[i, :].unsqueeze(0)
+            )
+            x_current2[i, :] = x_current2[i, :] + delta_t * xdot2.squeeze()
+
+        x_history2[:,:,t] = x_current2.cpu().detach().numpy()
+
     # Plot
     plt.figure("State 2-norm")
     for i in range(n_sims):
-        plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
+        plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1), color='red')
+        plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history2[i,:,:].squeeze().T, axis=1), color='blue')
     plt.show()
 
 if __name__ == "__main__":

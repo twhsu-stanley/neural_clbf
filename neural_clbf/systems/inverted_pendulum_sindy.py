@@ -274,3 +274,108 @@ class InvertedPendulumSINDy(ControlAffineSystem):
             )
 
         return u
+    
+    def _f_ground_truth(self, x: torch.Tensor, params: Scenario):
+        """
+        Return the control-independent part of the control-affine dynamics.
+
+        args:
+            x: bs x self.n_dims tensor of state
+            params: a dictionary giving the parameter values for the system. If None,
+                    default to the nominal parameters used at initialization
+        returns:
+            f: bs x self.n_dims x 1 tensor
+        """
+        # Extract batch size and set up a tensor for holding the result
+        batch_size = x.shape[0]
+        f = torch.zeros((batch_size, self.n_dims, 1))
+        f = f.type_as(x)
+
+        # Extract the needed parameters
+        m, L, b = params["m"], params["L"], params["b"]
+        # and state variables
+        theta = x[:, InvertedPendulumSINDy.THETA]
+        theta_dot = x[:, InvertedPendulumSINDy.THETA_DOT]
+
+        # The derivatives of theta is just its velocity
+        f[:, InvertedPendulumSINDy.THETA, 0] = theta_dot
+
+        # Acceleration in theta depends on theta via gravity and theta_dot via damping
+        f[:, InvertedPendulumSINDy.THETA_DOT, 0] = (
+            grav / L * torch.sin(theta) - b / (m * L ** 2) * theta_dot
+        )
+
+        return f
+    
+    def _g_ground_truth(self, x: torch.Tensor, params: Scenario):
+        """
+        Return the control-independent part of the control-affine dynamics.
+
+        args:
+            x: bs x self.n_dims tensor of state
+            params: a dictionary giving the parameter values for the system. If None,
+                    default to the nominal parameters used at initialization
+        returns:
+            g: bs x self.n_dims x self.n_controls tensor
+        """
+        # Extract batch size and set up a tensor for holding the result
+        batch_size = x.shape[0]
+        g = torch.zeros((batch_size, self.n_dims, self.n_controls))
+        g = g.type_as(x)
+
+        # Extract the needed parameters
+        m, L = params["m"], params["L"]
+
+        # Effect on theta dot
+        g[:, InvertedPendulumSINDy.THETA_DOT, InvertedPendulumSINDy.U] = 1 / (m * L ** 2)
+
+        return g
+
+    def control_affine_ground_truth_dynamics(
+        self, x: torch.Tensor, params: Optional[Scenario] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Return a tuple (f, g) representing the system dynamics in control-affine form:
+
+            dx/dt = f(x) + g(x) u
+
+        args:
+            x: bs x self.n_dims tensor of state
+            params: a dictionary giving the parameter values for the system. If None,
+                    default to the nominal parameters used at initialization
+        returns:
+            f: bs x self.n_dims x 1 tensor representing the control-independent dynamics
+            g: bs x self.n_dims x self.n_controls tensor representing the control-
+               dependent dynamics
+        """
+        # Sanity check on input
+        assert x.ndim == 2
+        assert x.shape[1] == self.n_dims
+
+        # If no params required, use nominal params
+        if params is None:
+            params = self.nominal_params
+
+        return self._f_ground_truth(x, params), self._g_ground_truth(x, params)
+    
+    def closed_loop_ground_truth_dynamics(
+        self, x: torch.Tensor, u: torch.Tensor, params: Optional[Scenario] = None
+    ) -> torch.Tensor:
+        """
+        Return the state derivatives at state x and control input u
+
+            dx/dt = f(x) + g(x) u
+
+        args:
+            x: bs x self.n_dims tensor of state
+            u: bs x self.n_controls tensor of controls
+            params: a dictionary giving the parameter values for the system. If None,
+                    default to the nominal parameters used at initialization
+        returns:
+            xdot: bs x self.n_dims tensor of time derivatives of x
+        """
+        # Get the control-affine dynamics
+        f_ground_truth, g_ground_truth = self.control_affine_ground_truth_dynamics(x, params=params)
+        # Compute state derivatives using control-affine form
+        xdot = f_ground_truth + torch.bmm(g_ground_truth, u.unsqueeze(-1))
+        return xdot.view(x.shape)
