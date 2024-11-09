@@ -79,7 +79,7 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     if hasattr(neural_controller, "device"):
         device = neural_controller.device  # type: ignore
     x_current = x_sim_start.to(device)
-    x_current2 = x_sim_start.to(device)
+    x_current2 =  x_current.clone()
 
     # Simulate
     delta_t = neural_controller.dynamics_model.dt
@@ -90,34 +90,31 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     x_history = np.zeros((n_sims, n_dims, num_timesteps))
     x_history2 = np.zeros((n_sims, n_dims, num_timesteps))
 
+    neural_controller2 = neural_controller
+
     for t in range(num_timesteps):
         # Compute control input by solving the CLF-QP-CP problem
         u_current, _ = neural_controller.u_CLF_QP_CP(x_current, clf_qp_cp_solver, point_wise_cp_quantile)
-        #u_current = neural_controller.u(x_current)
 
-        # Simulate forward using the dynamics
+        # Simulate forward using the ground truth model
         for i in range(n_sims):
-            # Use the ground truth model
             xdot = neural_controller.dynamics_model.closed_loop_ground_truth_dynamics(
                 x_current[i, :].unsqueeze(0),
                 u_current[i, :].unsqueeze(0)
             )
             x_current[i, :] = x_current[i, :] + delta_t * xdot.squeeze()
-
         x_history[:,:,t] = x_current.cpu().detach().numpy()
 
-        # Compute control input by solving the CLF-QP-CP problem
-        u_current2, _ = neural_controller.u_CLF_QP_CP(x_current2, clf_qp_cp_solver, point_wise_cp_quantile)
+        # Compute control input by solving the CLF-QP problem as if the learned model and learned CLF are correct
+        u_current2 = neural_controller2.u(x_current2)
 
-        # Simulate forward using the dynamics
+        # Simulate forward using the ground truth model
         for i in range(n_sims):
-            # Use the learned model
-            xdot2 = neural_controller.dynamics_model.closed_loop_dynamics(
+            xdot2 = neural_controller2.dynamics_model.closed_loop_ground_truth_dynamics(
                 x_current2[i, :].unsqueeze(0),
                 u_current2[i, :].unsqueeze(0)
             )
             x_current2[i, :] = x_current2[i, :] + delta_t * xdot2.squeeze()
-
         x_history2[:,:,t] = x_current2.cpu().detach().numpy()
 
     # Plot
@@ -125,11 +122,14 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     for i in range(n_sims):
         plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1), color='red')
         plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history2[i,:,:].squeeze().T, axis=1), color='blue')
+    plt.xlabel("Time (s)")
+    plt.ylabel("x 2-norm")
     plt.show()
 
 if __name__ == "__main__":
     # Load the learned CLF
-    log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt"
+    log_file = "./logs/inverted_pendulum_sindy/commit_7e70ad1/version_0/checkpoints/epoch=50-step=7190.ckpt" # training data with noise
+    #log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt" # training data without noise
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
     # Load the saved CP quantile
@@ -148,9 +148,10 @@ if __name__ == "__main__":
         [
             [1.5, 1.5],
             #[0.9, 1.5],
-            [0.3, 1.5],
+            #[0.3, 1.5],
         ]
     )
 
     # Run the sim
+    point_wise_cp_quantile = 0.5
     clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quantile, start_x, T = 3)

@@ -16,7 +16,6 @@ from neural_clbf.experiments import (
     ExperimentSuite,
     CLFContourExperiment,
     RolloutStateSpaceExperiment,
-    RolloutStateSpaceExperimentCP,
 )
 from neural_clbf.training.utils import current_git_hash
 

@@ -33,7 +33,8 @@ def calc_point_wise_cp_quantile(neural_controller, sindy_model, trajectory_data,
 
 if __name__ == "__main__":
     # Load the learned CLF
-    log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt"
+    log_file = "./logs/inverted_pendulum_sindy/commit_7e70ad1/version_0/checkpoints/epoch=50-step=7190.ckpt" # training data with noise
+    #log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt" # training data without noise
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
     # Load the SINDY model

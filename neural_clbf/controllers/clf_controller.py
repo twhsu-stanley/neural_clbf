@@ -478,7 +478,7 @@ class CLFController(Controller):
         # Solve the QP problem
         result = qp_cp_solver(
             *params,
-            solver_args={"max_iters": 1000},
+            solver_args={"max_iters": 5000},
         )
 
         # Extract the results
