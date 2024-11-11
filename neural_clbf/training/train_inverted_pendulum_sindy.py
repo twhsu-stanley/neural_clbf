@@ -6,6 +6,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 import numpy as np
 import pickle
+import dill
 
 from neural_clbf.controllers import NeuralCLBFController
 from neural_clbf.datamodules.episodic_datamodule import (
@@ -49,7 +50,7 @@ def main(args):
 
     # Load the SINDY model
     with open('../pysindy/control_affine_models/saved_models/model_inverted_pendulum_sindy', 'rb') as file:
-        model = pickle.load(file)
+        model = dill.load(file)
 
     # Define the dynamics model
     dynamics_model = InvertedPendulumSINDy(

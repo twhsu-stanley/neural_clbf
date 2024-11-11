@@ -1,6 +1,7 @@
 import torch
 from neural_clbf.controllers import NeuralCLBFController
 import pickle
+import dill
 import numpy as np
 
 # TODO: Generic functions that calculates and returns the CP quantiles for the point-wise case and the finite-horizon case
@@ -33,13 +34,14 @@ def calc_point_wise_cp_quantile(neural_controller, sindy_model, trajectory_data,
 
 if __name__ == "__main__":
     # Load the learned CLF
-    log_file = "./logs/inverted_pendulum_sindy/commit_7e70ad1/version_0/checkpoints/epoch=50-step=7190.ckpt" # training data with noise
+    log_file = "./logs/inverted_pendulum_sindy/commit_4be3cd5/version_0/checkpoints/epoch=50-step=7190.ckpt" # constrained; training data with noise
+    #log_file = "./logs/inverted_pendulum_sindy/commit_7e70ad1/version_0/checkpoints/epoch=50-step=7190.ckpt" # training data with noise
     #log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt" # training data without noise
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
     # Load the SINDY model
     with open('../pysindy/control_affine_models/saved_models/model_inverted_pendulum_sindy', 'rb') as file:
-        sindy_model = pickle.load(file)
+        sindy_model = dill.load(file)
 
     # Load trajectory data (calibration and validation sets)
     with open('../pysindy/control_affine_models/trajectory_data/traj_inverted_pendulum_sindy', 'rb') as file:
