@@ -89,77 +89,97 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     
     x_history = np.zeros((n_sims, n_dims, num_timesteps))
     x_history2 = np.zeros((n_sims, n_dims, num_timesteps))
+    V_history = np.zeros((n_sims, num_timesteps))
+    V_history2 = np.zeros((n_sims, num_timesteps))
     p_history = np.zeros((n_sims, num_timesteps)) # CLF constraint: p = Vdot + c3*V
     p_history2 = np.zeros((n_sims, num_timesteps))
     Vdot_err_history = np.zeros((n_sims, num_timesteps)) # Error term introduced by learning error
     model_err_history = np.zeros((n_sims, n_dims, num_timesteps))
+    cnstr_tightening_history = np.zeros((n_sims, num_timesteps))
 
     neural_controller2 = neural_controller
 
     for t in range(num_timesteps):
+        x_history[:,:,t] = x_current.cpu().detach().numpy()
+
         # Compute control input by solving the CLF-QP-CP problem
+        #point_wise_cp_quantile = 30 * np.exp(-10 * t * delta_t) # testing different cp quantile
         #u_current, _ = neural_controller.u_CLF_QP_CP(x_current, clf_qp_cp_solver, point_wise_cp_quantile)
-        u_current = neural_controller.u(x_current)
+        #u_current = neural_controller.u(x_current)
 
         # Simulate forward using the ground truth model
         for i in range(n_sims):
+
+            _, gradV_current = neural_controller.V_with_jacobian(x_current[i, :].unsqueeze(0))
+            gradV_current = gradV_current.squeeze(0).cpu().detach().numpy()
+            cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), np.inf) * point_wise_cp_quantile # inf-norm * 1-norm
+            u_current, _ = neural_controller.u_CLF_QP_CP(x_current[i, :].unsqueeze(0), clf_qp_cp_solver, cnstr_tightening)
+
             xdot = neural_controller.dynamics_model.closed_loop_ground_truth_dynamics(
                 x_current[i, :].unsqueeze(0),
-                u_current[i, :].unsqueeze(0)
+                u_current#[i, :].unsqueeze(0)
             )
 
             # Compute the errors
-            _, gradV = neural_controller.V_with_jacobian(x_current[i, :].unsqueeze(0))
             f_ground_truth, g_ground_truth = neural_controller.dynamics_model.control_affine_ground_truth_dynamics(x_current[i, :].unsqueeze(0))
             f, g = neural_controller.dynamics_model.control_affine_dynamics(x_current[i, :].unsqueeze(0))
             f_ground_truth = f_ground_truth.squeeze(0).cpu().detach().numpy()
             g_ground_truth = g_ground_truth.squeeze(0).cpu().detach().numpy()
             f = f.squeeze(0).cpu().detach().numpy()
             g = g.squeeze(0).cpu().detach().numpy()
-            uc = u_current[i, :].unsqueeze(0).cpu().detach().numpy()
+            uc = u_current.unsqueeze(0).cpu().detach().numpy()
 
             model_err = f_ground_truth + g_ground_truth @ uc.T - f - g @ uc.T
             model_err_history[i,:,t] = abs(model_err.squeeze())
 
-            Vdot_err_history[i,t] = (gradV.squeeze(0).cpu().detach().numpy() @ model_err).item()
+            Vdot_err_history[i,t] = (gradV_current @ model_err).item()
 
-            Vdot_current = gradV.squeeze(0).cpu().detach().numpy() @ (f_ground_truth + g_ground_truth @ uc.T)
+            Vdot_current = gradV_current @ (f_ground_truth + g_ground_truth @ uc.T)
             V_current = neural_controller.V(x_current[i, :].unsqueeze(0)).cpu().detach().item()
+            V_history[i,t] = V_current
             clf_constraint = Vdot_current.item() + neural_controller.clf_lambda * V_current
             p_history[i,t] = clf_constraint
+            cnstr_tightening_history[i,t] = cnstr_tightening
 
             # Propagate the state
             x_current[i, :] = x_current[i, :] + delta_t * xdot.squeeze()
 
-        x_history[:,:,t] = x_current.cpu().detach().numpy()
-        
+        x_history2[:,:,t] = x_current2.cpu().detach().numpy()
+
         # Compute control input by solving the CLF-QP problem using the nominal (learned) model
         u_current2 = neural_controller2.u(x_current2)
 
         # Simulate forward using the nominal model
         for i in range(n_sims):
-            xdot2 = neural_controller2.dynamics_model.closed_loop_dynamics(
+            xdot2 = neural_controller2.dynamics_model.closed_loop_ground_truth_dynamics(
                 x_current2[i, :].unsqueeze(0),
                 u_current2[i, :].unsqueeze(0)
             )
+
+            V_current2 = neural_controller2.V(x_current2[i, :].unsqueeze(0))
+            V_history2[i,t] = V_current2.cpu().detach().item()
+            Lf_V, Lg_V = neural_controller2.V_lie_derivatives(x_current2[i, :].unsqueeze(0))
+            clf_constraint = Lf_V + Lg_V @ u_current2[i, :].T + neural_controller2.clf_lambda * V_current2
+            p_history2[i,t] = clf_constraint.cpu().detach().item()
+
+            # Propagate the state
             x_current2[i, :] = x_current2[i, :] + delta_t * xdot2.squeeze()
 
-            V = neural_controller2.V(x_current2[i, :].unsqueeze(0))
-            Lf_V, Lg_V = neural_controller2.V_lie_derivatives(x_current2[i, :].unsqueeze(0))
-            clf_constraint = Lf_V + Lg_V @ u_current2[i, :].T + neural_controller2.clf_lambda * V
-            p_history2[i,t] = clf_constraint.cpu().detach().item()
-        x_history2[:,:,t] = x_current2.cpu().detach().numpy()
-
     # Plot
-    plt.figure("State 2-norm")
+    fig, ax = plt.subplots(2, 1)
     for i in range(n_sims):
-        plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1), color='red')
-        plt.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history2[i,:,:].squeeze().T, axis=1), color='blue')
-    plt.xlabel("Time (s)")
-    plt.ylabel("x 2-norm")
-    plt.show()
+        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1), color='red')
+        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history2[i,:,:].squeeze().T, axis=1), color='blue')
+    ax[0].set_ylabel("x 2-norm")
+    ax[0].grid(True)
+    for i in range(n_sims):
+        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:], color='red')
+        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history2[i,:], color='blue')
+    ax[1].set_xlabel("Time (s)")
+    ax[1].set_ylabel("V(x)")
+    ax[1].grid(True)
 
-    fig, ax = plt.subplots(3, 1)
+    fig, ax = plt.subplots(4, 1)
     for i in range(n_sims):
         ax[0].plot(np.arange(num_timesteps) * delta_t, p_history[i,:], color='red')
         ax[0].plot(np.arange(num_timesteps) * delta_t, p_history2[i,:], color='blue')
@@ -171,17 +191,23 @@ def clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quan
     for i in range(n_sims):
         ax[1].plot(np.arange(num_timesteps) * delta_t, Vdot_err_history[i,:], color='red')
     #ax[1].set_xlabel("Time (s)")
-    ax[1].set_ylabel("Vdot Err = gradV @ Model Err")
+    ax[1].set_ylabel("gradV@Model Err")
     ax[1].grid(True)
     #ax[1].set_title("CLF Error")
     #
     for i in range(n_sims):
         ax[2].plot(np.arange(num_timesteps) * delta_t, model_err_history[i,:,:].T)
-    ax[2].set_xlabel("Time (s)")
-    ax[2].set_ylabel("abs(f + g@u - f' - g'@u)")
+    #ax[2].set_xlabel("Time (s)")
+    ax[2].set_ylabel("|f+g@u-f'-g'@u|")
     ax[2].grid(True)
     #ax[2].set_title("Model Error")
+    for i in range(n_sims):
+        ax[3].plot(np.arange(num_timesteps) * delta_t, cnstr_tightening_history[i,:].T)
+    ax[3].set_xlabel("Time (s)")
+    ax[3].set_ylabel("||gradV||*Quantile")
+    ax[3].grid(True)
     fig.tight_layout()
+
     plt.show()
 
 if __name__ == "__main__":
@@ -205,12 +231,12 @@ if __name__ == "__main__":
     # Set up initial conditions for the sim
     start_x = torch.tensor(
         [
-            #[1.5, 1.5],
-            [-0.9, 0.5],
+            [1.9, 0],
+            #[-0.9, 0.5],
             #[0.3, 1.5],
         ]
     )
 
     # Run the sim
-    point_wise_cp_quantile = 0
-    clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quantile, start_x, T = 2)
+    #point_wise_cp_quantile = 0.5
+    clf_qp_cp_simulation(neural_controller, clf_qp_cp_solver, point_wise_cp_quantile, start_x, T = 1)

@@ -17,15 +17,12 @@ def calc_point_wise_cp_quantile(neural_controller, sindy_model, trajectory_data,
     u_val = trajectory_data["u_val"]
     dt = trajectory_data["dt"]
     
-    # Conpute nonconformity score for <JV(x), f(x,u)-\hat{f}(x,u)>
+    # Conpute nonconformity score for ||f(x,u)-\hat{f}(x,u)||_2
     nc_score = []
     for i in range(len(x_cal)):
         model_err = (sindy_model.predict(x_cal[i], u = u_cal[i]) - sindy_model.differentiate(x_cal[i], t = dt))
-        _, JV = neural_controller.V_with_jacobian(torch.tensor(x_cal[i], dtype = torch.float32))
-        JV = JV.detach().numpy()
         for j in range(x_cal[i].shape[0]):
-            R = JV[j,:,:] @ model_err[j,:]
-            nc_score.extend(R)
+            nc_score.append(np.linalg.norm(model_err[j,:], 1)) # 1-norm * inf-norm
 
     n = len(nc_score)
     cp_quantile = np.quantile(nc_score, np.ceil((n + 1) * (1 - cp_alpha)) / n, interpolation="higher")
