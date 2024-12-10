@@ -302,7 +302,7 @@ if __name__ == "__main__":
     # Set up initial conditions for the sim
     start_x = torch.tensor(
         [
-            [1.9, 0],
+            [1.9, 1.9],
             #[-0.9, 0.5],
             #[0.3, 1.5],
         ]

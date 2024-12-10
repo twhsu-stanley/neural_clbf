@@ -41,4 +41,5 @@ try:
     __all__.append("TurtlebotHWStateFeedbackExperiment")
     __all__.append("TurtlebotHWObsFeedbackExperiment")
 except ImportError:
-    warn("Could not import HW module; is ROS installed?")
+    pass
+    #warn("Could not import HW module; is ROS installed?")

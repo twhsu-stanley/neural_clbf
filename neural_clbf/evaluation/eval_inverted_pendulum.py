@@ -11,6 +11,10 @@ def plot_inverted_pendulum():
     # training.
     #log_file = "saved_models/review/inverted_pendulum_clf.ckpt"
     log_file = "logs/inverted_pendulum/commit_82c5b84/version_2/checkpoints/epoch=50-step=7190.ckpt"
+    
+    log_file = "./logs/inverted_pendulum_sindy/commit_4be3cd5/version_0/checkpoints/epoch=50-step=7190.ckpt" # constrained; training data with noise
+    #log_file = "./logs/inverted_pendulum_sindy/commit_7e70ad1/version_0/checkpoints/epoch=50-step=7190.ckpt" # training data with noise
+    #log_file = "./logs/inverted_pendulum_sindy/commit_c046f61/version_2/checkpoints/epoch=24-step=3524.ckpt" # training data without noise
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
     # Update parameters

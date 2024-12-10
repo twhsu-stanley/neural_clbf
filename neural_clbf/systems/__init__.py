@@ -8,6 +8,9 @@ from .quad3d import Quad3D
 from .neural_lander import NeuralLander
 from .inverted_pendulum import InvertedPendulum
 from .inverted_pendulum_sindy import InvertedPendulumSINDy
+from .inverted_pendulum_cart import InvertedPendulumCart
+from .inverted_pendulum_cart_sindy import InvertedPendulumCartSINDy
+from .double_inverted_pendulum import DoubleInvertedPendulum
 from .kinematic_single_track_car import KSCar
 from .single_track_car import STCar
 from .segway import Segway
@@ -23,6 +26,9 @@ __all__ = [
     "PlanarLidarSystem",
     "InvertedPendulum",
     "InvertedPendulumSINDy",
+    "InvertedPendulumCart",
+    "InvertedPendulumCartSINDy",
+    "DoubleInvertedPendulum",
     "Quad2D",
     "Quad3D",
     "NeuralLander",
@@ -41,4 +47,5 @@ try:
 
     __all__.append("F16")
 except ImportError:
-    warn("Could not import F16 module; is AeroBench installed")
+    pass
+    #warn("Could not import F16 module; is AeroBench installed")
