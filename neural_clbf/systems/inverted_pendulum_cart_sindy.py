@@ -122,8 +122,8 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
 
     @property
     def angle_dims(self) -> List[int]:
-        #return [InvertedPendulumCartSINDy.THETA]
-        return [] # Testing
+        return [InvertedPendulumCartSINDy.THETA]
+        #return [] # Testing
 
     @property
     def n_controls(self) -> int:
@@ -139,7 +139,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         upper_limit = torch.ones(self.n_dims)
         upper_limit[InvertedPendulumCartSINDy.Z] = 8.0
         upper_limit[InvertedPendulumCartSINDy.Z_DOT] = 10.0
-        upper_limit[InvertedPendulumCartSINDy.THETA] = np.pi/2
+        upper_limit[InvertedPendulumCartSINDy.THETA] = np.pi #/2
         upper_limit[InvertedPendulumCartSINDy.THETA_DOT] = 10.0
 
         lower_limit = -1.0 * upper_limit
@@ -171,7 +171,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        safe_mask = x.norm(dim=-1) <= 2.0
+        safe_mask = x.norm(dim=-1) <= 0.5
 
         return safe_mask
 
@@ -184,7 +184,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        unsafe_mask = x.norm(dim=-1) >= 3.0
+        unsafe_mask = x.norm(dim=-1) >= 1.5
 
         return unsafe_mask
 
@@ -197,7 +197,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        goal_mask = x.norm(dim=-1) <= 1.0
+        goal_mask = x.norm(dim=-1) <= 0.3
 
         return goal_mask
 
@@ -216,7 +216,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         batch_size = x.shape[0]
         f = torch.zeros((batch_size, self.n_dims, 1))
         f = f.type_as(x)
-        #"""
+
         # Compute f(x) using the SINDy model
         Theta = model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
         coeff = model.optimizer.coef_
@@ -235,7 +235,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         f[:, InvertedPendulumCartSINDy.Z_DOT, 0] = f_of_x[:,1]
         f[:, InvertedPendulumCartSINDy.THETA, 0] = f_of_x[:,2]
         f[:, InvertedPendulumCartSINDy.THETA_DOT, 0] = f_of_x[:,3]
-        #"""
+
         return f
 
     def _g(self, x: torch.Tensor, params: Scenario):
@@ -253,7 +253,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         batch_size = x.shape[0]
         g = torch.zeros((batch_size, self.n_dims, self.n_controls))
         g = g.type_as(x)
-        #"""
+
         # Compute g(x) using the SINDy model
         Theta = model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
         coeff = model.optimizer.coef_
@@ -269,7 +269,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         g[:, InvertedPendulumCartSINDy.Z_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,1]
         g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
         g[:, InvertedPendulumCartSINDy.THETA_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,3]
-        #"""
+
         return g
     
     def u_nominal(

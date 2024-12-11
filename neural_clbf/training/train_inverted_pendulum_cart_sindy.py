@@ -22,8 +22,8 @@ import pysindy as ps
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-controller_period = 0.01
-simulation_dt = 0.01
+controller_period = 0.002
+simulation_dt = 0.002
 
 start_x = torch.tensor(
     [
