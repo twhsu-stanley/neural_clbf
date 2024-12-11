@@ -145,7 +145,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 81,
+        max_epochs = 71,
         stochastic_weight_avg = True
     )
 

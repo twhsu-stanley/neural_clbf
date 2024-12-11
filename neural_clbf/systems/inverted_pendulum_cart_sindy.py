@@ -286,7 +286,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             u_nominal: bs x self.n_controls tensor of controls
         """
         # Compute nominal control from feedback + equilibrium control
-        K = torch.tensor([[ -0.9500, -20.1210,  77.3411,  15.1780]])
+        K = torch.tensor([[-0.9500, -20.1210, 77.3411, 15.1780]])
         goal = self.goal_point.squeeze().type_as(x)
         u_nominal = -(K @ (x - goal).T).T
 
