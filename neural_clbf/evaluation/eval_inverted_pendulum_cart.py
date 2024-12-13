@@ -14,8 +14,8 @@ matplotlib.use('TkAgg')
 def plot_inverted_pendulum_cart():
     # Load the checkpoint file. This should include the experiment suite used during
     # training.
-    log_file = "./logs/inverted_pendulum_cart/commit_ca448fb/version_5/checkpoints/epoch=120-step=19880.ckpt" # nominal model
-    #log_file = "./logs/inverted_pendulum_cart_sindy/commit_ca448fb/version_31/checkpoints/epoch=120-step=19880.ckpt" # SINDy model
+    #log_file = "./logs/inverted_pendulum_cart/commit_ca448fb/version_5/checkpoints/epoch=120-step=19880.ckpt" # nominal model
+    log_file = "./logs/inverted_pendulum_cart_sindy/commit_ca448fb/version_35/checkpoints/epoch=45-step=12971.ckpt" # SINDy model
     
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
@@ -87,10 +87,10 @@ def plot_inverted_pendulum_cart():
         "$\\dot{\\theta}$",
         scenarios = scenarios,
         n_sims_per_start = 1,
-        t_sim = 5.0,
+        t_sim = 2.0,
     )
-    #experiment_suite = ExperimentSuite([V_contour_experiment_1, V_contour_experiment_2, rollout_experiment_2, rollout_experiment_1])
-    experiment_suite = ExperimentSuite([rollout_experiment_2])
+    experiment_suite = ExperimentSuite([V_contour_experiment_1, V_contour_experiment_2, rollout_experiment_2, rollout_experiment_1])
+    #experiment_suite = ExperimentSuite([rollout_experiment_2])
     
     neural_controller.experiment_suite = experiment_suite
 
