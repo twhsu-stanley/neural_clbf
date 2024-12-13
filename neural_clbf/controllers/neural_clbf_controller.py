@@ -429,6 +429,20 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         loss.append(("CLBF MSE", clbf_mse_loss))
 
         return loss
+    
+    def roa_regulator_loss(self, x: torch.Tensor) -> List[Tuple[str, torch.Tensor]]:
+        """ A loss term that regulates how fast the CLF increases w.r.t. the radius of the level sets"""
+        loss = []
+        
+        V = self.V(x)
+
+        alpha = 6.0
+
+        roa_reg_loss = 2.0 * torch.mean((torch.norm(x, p = 2, dim = 1) - alpha * V).pow(2))
+
+        loss.append(("ROA regulator", roa_reg_loss))
+
+        return loss
 
     def training_step(self, batch, batch_idx):
         """Conduct the training step for the given batch"""
@@ -445,6 +459,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.descent_loss(x, goal_mask, safe_mask, unsafe_mask, requires_grad=True)
         )
+        component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)
@@ -501,7 +516,10 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.boundary_loss(x, goal_mask, safe_mask, unsafe_mask)
         )
-        component_losses.update(self.descent_loss(x, goal_mask, safe_mask, unsafe_mask))
+        component_losses.update(
+            self.descent_loss(x, goal_mask, safe_mask, unsafe_mask)
+        )
+        component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)
