@@ -91,7 +91,11 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
 
         # Since we aren't using a linearized controller, we need to provide
         # some guess for a Lyapunov matrix
-        self.P = torch.eye(self.n_dims)
+        #self.P = torch.eye(self.n_dims)
+        self.P = torch.tensor([[ 5.6748,  3.2077, -8.2618, -1.8670],
+                               [ 3.2077,  2.4812, -6.6064, -1.4238],
+                               [-8.2618, -6.6064, 19.8187,  3.8687],
+                               [-1.8670, -1.4238,  3.8687,  0.8558]])
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
