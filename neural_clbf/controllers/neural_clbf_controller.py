@@ -277,6 +277,10 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         goal_term = 1e1 * V_goal_pt.mean()
         loss.append(("CLBF goal term", goal_term))
 
+        # CLBF should be positive except at the goal point
+        positivity_violation = F.relu(-V).mean()
+        loss.append(("CLBF positivity", positivity_violation))
+
         # Only train these terms if we have a barrier requirement
         if self.barrier:
             #   2.) 0 < V <= safe_level in the safe region
