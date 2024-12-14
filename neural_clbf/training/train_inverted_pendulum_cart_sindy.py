@@ -51,10 +51,10 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (-8.0, 8.0), # z
-        (-10.0, 10.0), # z_dot
-        (-1.2, 1.2), # theta
-        (-10.0, 10.0), # theta_dot
+        (-0.5, 0.5), # z
+        (-1.0, 1.0), # z_dot
+        (-0.1, 0.1), # theta
+        (-0.3, 0.3), # theta_dot
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
@@ -128,7 +128,7 @@ def main(args):
         clf_relaxation_penalty = 1e3,
         primal_learning_rate = 2e-3,
         num_init_epochs = 5,
-        epochs_per_episode = 10,
+        epochs_per_episode = 20,
         barrier = False,
         disable_gurobi = True,
         #add_nominal = True,
@@ -145,7 +145,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 101,
+        max_epochs = 121,
         stochastic_weight_avg = True
     )
 

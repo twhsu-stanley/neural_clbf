@@ -278,7 +278,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         loss.append(("CLBF goal term", goal_term))
 
         # CLBF should be positive except at the goal point
-        positivity_violation = F.relu(-V).mean()
+        positivity_violation = 1e1 * F.relu(-V).mean()
         loss.append(("CLBF positivity", positivity_violation))
 
         # Only train these terms if we have a barrier requirement
@@ -440,9 +440,9 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         
         V = self.V(x)
 
-        alpha = 6.0
+        alpha = 10.0
 
-        roa_reg_loss = 2.0 * torch.mean((torch.norm(x, p = 2, dim = 1) - alpha * V).pow(2))
+        roa_reg_loss = 1e1 * torch.mean((torch.norm(x, p = 2, dim = 1) - alpha * V).pow(2))
 
         loss.append(("ROA regulator", roa_reg_loss))
 
