@@ -99,3 +99,28 @@ def robust_continuous_lyap(Acl_list: List[np.ndarray], Q: np.ndarray):
     prob.solve()
 
     return P.value
+
+def jacobian_numpy(f, x0, delta = 1e-5) -> np.ndarray:
+    """
+    Compute the Jacobian matrix of a vector-valued function 'f' at point 'x0' using numpy
+    """
+    assert f(x0).shape[0] == x0.shape[1]
+
+    # Convert x0 to a numpy array
+    #x0 = x0.cpu().detach().numpy()
+    
+    # Evaluate the function at x0
+    f0 = f(x0)
+    
+    # Initialize the Jacobian matrix
+    J = np.zeros((f(x0).shape[0], x0.shape[1]))
+    
+    for i in range(f(x0).shape[0]):
+        x_perturbed = x0.detach().clone()
+        for j in range(x0.shape[1]):
+            x_perturbed[0][j] += delta
+            f_perturbed = f(x_perturbed)
+            J[i, j] = (f_perturbed[i] - f0[i]) / delta
+            x_perturbed[0][j] = x0[0][j]  # Reset the perturbed value
+    
+    return J

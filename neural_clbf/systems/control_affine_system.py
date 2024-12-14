@@ -17,6 +17,7 @@ from neural_clbf.systems.utils import (
     lqr,
     robust_continuous_lyap,
     continuous_lyap,
+    jacobian_numpy,
 )
 
 
@@ -75,7 +76,7 @@ class ControlAffineSystem(ABC):
         # Compute the linearized controller
         if use_linearized_controller:
             self.compute_linearized_controller(scenarios)
-
+    
     @torch.enable_grad()
     def compute_A_matrix(self, scenario: Optional[Scenario]) -> np.ndarray:
         """Compute the linearized continuous-time state-state derivative transfer matrix
@@ -84,8 +85,9 @@ class ControlAffineSystem(ABC):
         x0 = self.goal_point
         u0 = self.u_eq
         dynamics = lambda x: self.closed_loop_dynamics(x, u0, scenario).squeeze()
-        A = jacobian(dynamics, x0).squeeze().cpu().numpy()
-        A = np.reshape(A, (self.n_dims, self.n_dims))
+        #A = jacobian(dynamics, x0).squeeze().cpu().numpy()
+        #A = np.reshape(A, (self.n_dims, self.n_dims))
+        A = jacobian_numpy(dynamics, x0, delta = 1e-5)
 
         return A
 

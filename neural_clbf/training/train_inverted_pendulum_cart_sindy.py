@@ -128,7 +128,7 @@ def main(args):
         clf_relaxation_penalty = 1e3,
         primal_learning_rate = 2e-3,
         num_init_epochs = 5,
-        epochs_per_episode = 100,
+        epochs_per_episode = 10,
         barrier = False,
         disable_gurobi = True,
         #add_nominal = True,
@@ -145,7 +145,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 71,
+        max_epochs = 101,
         stochastic_weight_avg = True
     )
 

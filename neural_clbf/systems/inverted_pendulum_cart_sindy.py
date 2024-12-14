@@ -86,16 +86,16 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         
         # TODO: Check if use_linearized_controller = True/False matters
         super().__init__(
-            nominal_params, dt=dt, controller_dt=controller_dt, use_linearized_controller=False, scenarios=scenarios
+            nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios
         )
 
         # Since we aren't using a linearized controller, we need to provide
         # some guess for a Lyapunov matrix
         #self.P = torch.eye(self.n_dims)
-        self.P = torch.tensor([[ 5.6748,  3.2077, -8.2618, -1.8670],
-                               [ 3.2077,  2.4812, -6.6064, -1.4238],
-                               [-8.2618, -6.6064, 19.8187,  3.8687],
-                               [-1.8670, -1.4238,  3.8687,  0.8558]])
+        #self.P = torch.tensor([[ 5.6748,  3.2077, -8.2618, -1.8670],
+        #                       [ 3.2077,  2.4812, -6.6064, -1.4238],
+        #                       [-8.2618, -6.6064, 19.8187,  3.8687],
+        #                       [-1.8670, -1.4238,  3.8687,  0.8558]])
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
@@ -236,13 +236,13 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         # TODO: The best solution seems to be making the in/output of model.get_regressor() both tensors
 
         #z = x[:, InvertedPendulumCartSINDy.Z]
-        z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
+        #z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
         #theta = x[:, InvertedPendulumCartSINDy.THETA]
-        theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
+        #theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
 
-        f[:, InvertedPendulumCartSINDy.Z, 0] = z_dot #f_of_x[:,0]
+        f[:, InvertedPendulumCartSINDy.Z, 0] = f_of_x[:,0]
         f[:, InvertedPendulumCartSINDy.Z_DOT, 0] = f_of_x[:,1]
-        f[:, InvertedPendulumCartSINDy.THETA, 0] = theta_dot #f_of_x[:,2]
+        f[:, InvertedPendulumCartSINDy.THETA, 0] = f_of_x[:,2]
         f[:, InvertedPendulumCartSINDy.THETA_DOT, 0] = f_of_x[:,3]
 
         return f
@@ -274,9 +274,9 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         g_of_x = torch.tensor(g_of_x)
 
         # Effect on theta dot
-        #g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = g_of_x[:,0]
+        g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = g_of_x[:,0]
         g[:, InvertedPendulumCartSINDy.Z_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,1]
-        #g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
+        g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
         g[:, InvertedPendulumCartSINDy.THETA_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,3]
 
         return g
@@ -295,7 +295,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             u_nominal: bs x self.n_controls tensor of controls
         """
         # Compute nominal control from feedback + equilibrium control
-        K = torch.tensor([[-0.9500, -20.1210, 77.3411, 15.1780]])
+        K = self.K.type_as(x) # torch.tensor([[-0.9500, -20.1210, 77.3411, 15.1780]])
         goal = self.goal_point.squeeze().type_as(x)
         u_nominal = -(K @ (x - goal).T).T
 
