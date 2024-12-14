@@ -126,8 +126,8 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
 
     @property
     def angle_dims(self) -> List[int]:
-        return [InvertedPendulumCartSINDy.THETA]
-        #return [] # Testing
+        #return [InvertedPendulumCartSINDy.THETA]
+        return [] # Testing
 
     @property
     def n_controls(self) -> int:
@@ -143,7 +143,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         upper_limit = torch.ones(self.n_dims)
         upper_limit[InvertedPendulumCartSINDy.Z] = 8.0
         upper_limit[InvertedPendulumCartSINDy.Z_DOT] = 10.0
-        upper_limit[InvertedPendulumCartSINDy.THETA] = np.pi #/2
+        upper_limit[InvertedPendulumCartSINDy.THETA] = np.pi/2
         upper_limit[InvertedPendulumCartSINDy.THETA_DOT] = 10.0
 
         lower_limit = -1.0 * upper_limit
@@ -235,9 +235,14 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         #        making the Jacobian (needed for linearizing the model and obtaining the LQR gain) always zero. 
         # TODO: The best solution seems to be making the in/output of model.get_regressor() both tensors
 
-        f[:, InvertedPendulumCartSINDy.Z, 0] = f_of_x[:,0]
+        #z = x[:, InvertedPendulumCartSINDy.Z]
+        z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
+        #theta = x[:, InvertedPendulumCartSINDy.THETA]
+        theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
+
+        f[:, InvertedPendulumCartSINDy.Z, 0] = z_dot #f_of_x[:,0]
         f[:, InvertedPendulumCartSINDy.Z_DOT, 0] = f_of_x[:,1]
-        f[:, InvertedPendulumCartSINDy.THETA, 0] = f_of_x[:,2]
+        f[:, InvertedPendulumCartSINDy.THETA, 0] = theta_dot #f_of_x[:,2]
         f[:, InvertedPendulumCartSINDy.THETA_DOT, 0] = f_of_x[:,3]
 
         return f
@@ -269,9 +274,9 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         g_of_x = torch.tensor(g_of_x)
 
         # Effect on theta dot
-        g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = g_of_x[:,0]
+        #g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = g_of_x[:,0]
         g[:, InvertedPendulumCartSINDy.Z_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,1]
-        g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
+        #g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
         g[:, InvertedPendulumCartSINDy.THETA_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,3]
 
         return g
