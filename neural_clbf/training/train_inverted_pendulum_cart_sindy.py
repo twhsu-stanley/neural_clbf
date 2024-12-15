@@ -22,8 +22,8 @@ import pysindy as ps
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-controller_period = 0.002
-simulation_dt = 0.002
+controller_period = 0.005
+simulation_dt = 0.005
 
 start_x = torch.tensor(
     [
@@ -59,10 +59,10 @@ def main(args):
     data_module = EpisodicDataModule(
         dynamics_model,
         initial_conditions,
-        trajectories_per_episode = 50,
+        trajectories_per_episode = 100,
         trajectory_length = 200,
         fixed_samples = 10000,
-        max_points = 40000,
+        max_points = 60000,
         val_split = 0.1,
         batch_size = 64,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
@@ -145,7 +145,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 121,
+        max_epochs = 151,
         stochastic_weight_avg = True
     )
 
