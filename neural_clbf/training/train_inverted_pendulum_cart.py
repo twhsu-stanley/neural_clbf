@@ -50,18 +50,18 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (-8.0, 8.0), # z
-        (-10.0, 10.0), # z_dot
-        (-1.2, 1.2), # theta
-        (-10.0, 10.0), # theta_dot
+        (-0.5, 0.5), # z
+        (-1.0, 1.0), # z_dot
+        (-0.1, 0.1), # theta
+        (-0.3, 0.3), # theta_dot
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
         initial_conditions,
-        trajectories_per_episode = 0,
-        trajectory_length = 1,
+        trajectories_per_episode = 50,
+        trajectory_length = 200,
         fixed_samples = 10000,
-        max_points = 100000,
+        max_points = 40000,
         val_split = 0.1,
         batch_size = 64,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
@@ -120,15 +120,15 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite = experiment_suite,
-        clbf_hidden_layers = 4,
+        clbf_hidden_layers = 3,
         clbf_hidden_size = 64,
         clf_lambda = 0.5,
         safe_level = 1.0,
         controller_period = controller_period,
         clf_relaxation_penalty = 1e3,
-        primal_learning_rate = 1e-3,
+        primal_learning_rate = 2e-3,
         num_init_epochs = 5,
-        epochs_per_episode = 100,
+        epochs_per_episode = 50,
         barrier = False,
         disable_gurobi = True,
         #add_nominal = True,
