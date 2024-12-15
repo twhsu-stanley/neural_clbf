@@ -52,16 +52,16 @@ def main(args):
     initial_conditions = [
         (-0.5, 0.5), # z
         (-1.0, 1.0), # z_dot
-        (-0.1, 0.1), # theta
-        (-0.3, 0.3), # theta_dot
+        (-0.2, 0.2), # theta
+        (-0.4, 0.4), # theta_dot
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
         initial_conditions,
         trajectories_per_episode = 50,
-        trajectory_length = 200,
+        trajectory_length = 100,
         fixed_samples = 10000,
-        max_points = 40000,
+        max_points = 30000,
         val_split = 0.1,
         batch_size = 64,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
@@ -145,7 +145,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 121,
+        max_epochs = 151,
         stochastic_weight_avg = True
     )
 
