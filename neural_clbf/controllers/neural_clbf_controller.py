@@ -463,7 +463,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.descent_loss(x, goal_mask, safe_mask, unsafe_mask, requires_grad=True)
         )
-        component_losses.update(self.roa_regulator_loss(x))
+        #component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)
@@ -523,7 +523,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.descent_loss(x, goal_mask, safe_mask, unsafe_mask)
         )
-        component_losses.update(self.roa_regulator_loss(x))
+        #component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)
