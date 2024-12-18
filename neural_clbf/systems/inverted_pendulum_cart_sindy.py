@@ -53,7 +53,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
     def __init__(
         self,
         nominal_params: Scenario,
-        dt: float = 0.001,
+        dt: float = 0.00,
         controller_dt: Optional[float] = None,
         scenarios: Optional[ScenarioList] = None,
     ):
@@ -175,7 +175,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        safe_mask = x.norm(dim=-1) <= 0.5
+        safe_mask = x.norm(dim=-1) <= 2.0
 
         return safe_mask
 
@@ -188,7 +188,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        unsafe_mask = x.norm(dim=-1) >= 1.5
+        unsafe_mask = x.norm(dim=-1) >= 3.0
 
         return unsafe_mask
 
@@ -201,7 +201,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             a tensor of (batch_size,) booleans indicating whether the corresponding
             point is in this region.
         """
-        goal_mask = x.norm(dim=-1) <= 0.3
+        goal_mask = x.norm(dim=-1) <= 1.0
 
         return goal_mask
 

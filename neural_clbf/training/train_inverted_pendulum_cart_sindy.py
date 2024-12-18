@@ -51,18 +51,18 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (-0.5, 0.5), # z
-        (-1.0, 1.0), # z_dot
-        (-0.2, 0.2), # theta
-        (-0.4, 0.4), # theta_dot
+        (-8.0, 8.0), # z
+        (-10.0, 10.0), # z_dot
+        (-1.2, 1.2), # theta
+        (-10.0, 10.0), # theta_dot
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
         initial_conditions,
-        trajectories_per_episode = 50,
-        trajectory_length = 100,
+        trajectories_per_episode = 0,
+        trajectory_length = 1,
         fixed_samples = 10000,
-        max_points = 45000,
+        max_points = 100000,
         val_split = 0.1,
         batch_size = 64,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
@@ -112,7 +112,9 @@ def main(args):
         n_sims_per_start = 1,
         t_sim = 2.0,
     )
-    experiment_suite = ExperimentSuite([V_contour_experiment_2])
+    experiment_suite = ExperimentSuite(
+        [V_contour_experiment_2, rollout_experiment_2]
+    )
     
     # Initialize the controller
     clbf_controller = NeuralCLBFController(
@@ -128,7 +130,7 @@ def main(args):
         clf_relaxation_penalty = 1e3,
         primal_learning_rate = 1e-3,
         num_init_epochs = 5,
-        epochs_per_episode = 50,
+        epochs_per_episode = 100,
         barrier = False,
         disable_gurobi = True,
         #add_nominal = True,
@@ -145,7 +147,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 151,
+        max_epochs = 121,
         stochastic_weight_avg = True
     )
 
