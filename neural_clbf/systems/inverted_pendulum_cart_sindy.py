@@ -53,7 +53,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
     def __init__(
         self,
         nominal_params: Scenario,
-        dt: float = 0.00,
+        dt: float = 0.01,
         controller_dt: Optional[float] = None,
         scenarios: Optional[ScenarioList] = None,
     ):
