@@ -61,7 +61,7 @@ def main(args):
         initial_conditions,
         trajectories_per_episode = 0,
         trajectory_length = 1,
-        fixed_samples = 10000,
+        fixed_samples = 10000 * 10,
         max_points = 100000,
         val_split = 0.1,
         batch_size = 64,
@@ -122,7 +122,7 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite = experiment_suite,
-        clbf_hidden_layers = 5,
+        clbf_hidden_layers = 4,
         clbf_hidden_size = 64,
         clf_lambda = 0.5,
         safe_level = 1.0,
@@ -147,7 +147,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 121,
+        max_epochs = 151,
         stochastic_weight_avg = True
     )
 
