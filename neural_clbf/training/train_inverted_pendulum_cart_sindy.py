@@ -122,7 +122,7 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite = experiment_suite,
-        clbf_hidden_layers = 4,
+        clbf_hidden_layers = 5,
         clbf_hidden_size = 64,
         clf_lambda = 0.5,
         safe_level = 1.0,
