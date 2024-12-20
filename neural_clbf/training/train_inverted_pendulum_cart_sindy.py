@@ -61,7 +61,7 @@ def main(args):
         initial_conditions,
         trajectories_per_episode = 0,
         trajectory_length = 1,
-        fixed_samples = 10000 * 10,
+        fixed_samples = 10000,
         max_points = 100000,
         val_split = 0.1,
         batch_size = 64,
@@ -147,7 +147,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 151,
+        max_epochs = 121,
         stochastic_weight_avg = True
     )
 
