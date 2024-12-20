@@ -426,6 +426,7 @@ class CLFController(Controller):
         cp_quantile,
         relaxation_penalty: Optional[float] = None,
         u_ref: Optional[torch.Tensor] = None,
+        solver_args = {"max_iters": 1000},
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Determine the control input for a given state using a QP with conformal prediction
 
@@ -478,7 +479,7 @@ class CLFController(Controller):
         # Solve the QP problem
         result = qp_cp_solver(
             *params,
-            solver_args={"max_iters": 1000},
+            solver_args = solver_args,
         )
 
         # Extract the results
