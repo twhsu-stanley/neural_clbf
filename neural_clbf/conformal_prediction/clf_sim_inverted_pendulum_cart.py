@@ -27,6 +27,8 @@ if __name__ == "__main__":
 
     neural_controller = NeuralCLBFController.load_from_checkpoint(log_file)
 
+    #neural_controller.clf_lambda = 0.0
+
     # Create a QP solver
     clf_qp_solver = create_clf_qp_cp_cvxpylayers_solver(neural_controller)
 
@@ -40,14 +42,10 @@ if __name__ == "__main__":
     # TODO: this is model-specific; make it general
     start_x = torch.tensor(
         [
-            [0.0, 0.0, 0.8, 0.0],
-            [0.0, 0.0, -0.8, 0.0],
-            [0.0, 0.0, 0.9, 0.0],
-            [0.0, 0.0, -0.9, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, -1.0, 0.0]
+            [-1.0, -5.0, 0.0, -5.0],
+            #[0.0, 0.0, -0.8, 0.0],
         ]
     )
 
     # Run the sim
-    clf_simulation(neural_controller,  clf_qp_solver, start_x, T = 5.0, solver_args = {"max_iters": 500})
+    clf_simulation(neural_controller,  clf_qp_solver, start_x, T = 3.0, solver_args = {"max_iters": 500})

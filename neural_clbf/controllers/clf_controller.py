@@ -423,7 +423,7 @@ class CLFController(Controller):
         self,
         x,
         qp_cp_solver: CvxpyLayer,
-        cp_quantile,
+        cnstr_tightening,
         relaxation_penalty: Optional[float] = None,
         u_ref: Optional[torch.Tensor] = None,
         solver_args = {"max_iters": 1000},
@@ -472,7 +472,7 @@ class CLFController(Controller):
         for i in range(self.n_scenarios):
             params.append(Lg_V[:, i, :])
         params.append(V.reshape(-1, 1))
-        params.append(torch.tensor([cp_quantile]).type_as(x))
+        params.append(torch.tensor([cnstr_tightening]).type_as(x))
         params.append(u_ref)
         params.append(torch.tensor([relaxation_penalty]).type_as(x))
 

@@ -23,6 +23,10 @@ if __name__ == "__main__":
     
     neural_controller_cp = NeuralCLBFController.load_from_checkpoint(log_file)
 
+    #neural_controller_cp.clf_lambda = 0.0
+    #neural_controller_cp.dynamics_model.nominal_params = {'M': 1.0, 'm': 1.0, 'L': 0.5, 'Kd': 10.0}
+    #{"M": 1.0, "m": 1.0, "L": 0.5, "Kd": 10.0}
+
     # Load CP quantile
     # TODO: make model_error a member of the model
     with open('../pysindy/control_affine_models/saved_models/model_inverted_pendulum_cart_sindy', 'rb') as file:
@@ -42,15 +46,11 @@ if __name__ == "__main__":
     # TODO: this is model-specific; make it general
     start_x = torch.tensor(
         [
-            [0.0, 0.0, 0.8, 0.0],
-            [0.0, 0.0, -0.8, 0.0],
-            [0.0, 0.0, 0.9, 0.0],
-            [0.0, 0.0, -0.9, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, -1.0, 0.0]
+            [-1.0, -5.0, 0.0, -5.0],
+            #[0.0, 0.0, -0.8, 0.0],
         ]
     )
 
     # Run the sim
     #cp_quantile = 0.5
-    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 2, solver_args = {"max_iters": 500})
+    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 3.0, solver_args = {"max_iters": 500})
