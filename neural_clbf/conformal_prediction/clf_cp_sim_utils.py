@@ -145,7 +145,7 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
     # Plot
     fig, ax = plt.subplots(n_dims, 1)
     for d in range(n_dims):
-        ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T, color='blue')
+        ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T)
         ax[d].grid(True)
         ax[d].set_ylabel("x [" + str(d) + "]")
     ax[n_dims-1].set_xlabel("Time (s)")
@@ -153,11 +153,11 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
 
     fig, ax = plt.subplots(2, 1)
     for i in range(n_sims):
-        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1), color='blue')
+        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
     ax[0].set_ylabel("x 2-norm")
     ax[0].grid(True)
     for i in range(n_sims):
-        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:], color='blue')
+        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:])
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("V(x)")
     ax[1].grid(True)
@@ -166,11 +166,11 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
     fig, ax = plt.subplots(n_controls + 1, 1)
     for u in range(n_controls):
         for i in range(n_sims):
-            ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T, color='blue')
+            ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T)
         ax[u].set_ylabel("u_QP [" + str(u) + "]")
         ax[u].grid(True)
     for i in range(n_sims):
-        ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:], color='blue')
+        ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:])
     ax[n_controls].set_xlabel("Time (s)")
     ax[n_controls].set_ylabel("r_QP")
     ax[n_controls].grid(True)
@@ -178,7 +178,7 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
 
     fig, ax = plt.subplots(1, 1)
     for i in range(n_sims):
-        ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:], color='blue')
+        ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:])
     ax.set_ylabel("p = Vdot + c3*V")
     ax.set_xlabel("Time (s)")
     ax.grid(True)
