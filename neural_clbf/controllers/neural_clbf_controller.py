@@ -56,7 +56,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         normalize_V_nominal: bool = False,
         disable_gurobi: bool = False,
         roa_regulator: bool = False,
-        roa_regulator_alpha: float = 10.0,
+        roa_regulator_alpha: float = 5.0,
         cp_learning: bool = False,
         solver_args = {"max_iters": 1000}
     ):

@@ -124,10 +124,10 @@ def main(args):
         experiment_suite = experiment_suite,
         clbf_hidden_layers = 4,
         clbf_hidden_size = 64,
-        clf_lambda = 0.5,
+        clf_lambda = 0.0,
         safe_level = 1.0,
         controller_period = controller_period,
-        clf_relaxation_penalty = 1e3,
+        clf_relaxation_penalty = 1e4,
         primal_learning_rate = 1e-3,
         num_init_epochs = 5,
         epochs_per_episode = 100,
@@ -135,7 +135,13 @@ def main(args):
         disable_gurobi = True,
         #add_nominal = True,
         #normalize_V_nominal = True,
+        roa_regulator = False,
+        #roa_regulator_alpha = 6.0,
+        cp_learning = True,
+        solver_args = {"solve_method": "ECOS"}
     )
+    #solver_args = {"solve_method": "ECOS", "max_iters": 1000, "reltol": 1e-8}
+    #solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
 
     # Initialize the logger and trainer
     tb_logger = pl_loggers.TensorBoardLogger(

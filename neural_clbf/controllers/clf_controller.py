@@ -401,7 +401,7 @@ class CLFController(Controller):
         Lf_V, Lg_V = self.V_lie_derivatives(x)
 
         if self.cp_learning:
-            cnstr_tightening = torch.linalg.norm(gradV.squeeze(), ord = np.inf, dim = 1) * self.dynamics_model.cp_quantile # inf-norm * 1-norm
+            cnstr_tightening = torch.linalg.norm(gradV.squeeze(1), ord = np.inf, dim = 1) * self.dynamics_model.cp_quantile # inf-norm * 1-norm
             cnstr_tightening = cnstr_tightening.reshape(-1, 1)
         else:
             cnstr_tightening = torch.tensor([0.0]).type_as(x)
