@@ -55,6 +55,10 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         add_nominal: bool = False,
         normalize_V_nominal: bool = False,
         disable_gurobi: bool = False,
+        roa_regulator: bool = False,
+        roa_regulator_alpha: float = 10.0,
+        cp_learning: bool = False,
+        solver_args = {"max_iters": 1000}
     ):
         """Initialize the controller.
 
@@ -93,6 +97,8 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
             clf_relaxation_penalty=clf_relaxation_penalty,
             controller_period=controller_period,
             disable_gurobi=disable_gurobi,
+            cp_learning = cp_learning,
+            solver_args = solver_args,
         )
         self.save_hyperparameters()
 
@@ -118,6 +124,8 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         self.add_nominal = add_nominal
         self.normalize_V_nominal = normalize_V_nominal
         self.V_nominal_mean = 1.0
+        self.roa_regulator = roa_regulator
+        self.roa_regulator_alpha = roa_regulator_alpha
 
         # Compute and save the center and range of the state variables
         x_max, x_min = dynamics_model.state_limits
@@ -440,7 +448,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         
         V = self.V(x)
 
-        alpha = 10.0
+        alpha = self.roa_regulator_alpha
 
         roa_reg_loss = 1e1 * torch.mean((torch.norm(x, p = 2, dim = 1) - alpha * V).pow(2))
 
@@ -463,7 +471,8 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.descent_loss(x, goal_mask, safe_mask, unsafe_mask, requires_grad=True)
         )
-        #component_losses.update(self.roa_regulator_loss(x))
+        if self.roa_regulator:
+            component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)
@@ -523,7 +532,8 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         component_losses.update(
             self.descent_loss(x, goal_mask, safe_mask, unsafe_mask)
         )
-        #component_losses.update(self.roa_regulator_loss(x))
+        if self.roa_regulator:
+            component_losses.update(self.roa_regulator_loss(x))
 
         # Compute the overall loss by summing up the individual losses
         total_loss = torch.tensor(0.0).type_as(x)

@@ -83,6 +83,9 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
                 idx_x.append(i)
         self.idx_x = idx_x
         self.idx_u = idx_u
+
+        self.cp_quantile = model.model_error['quantile']
+        print("CP alpha = %4.2f; CP quantile = %5.3f" % (model.model_error['alpha'], self.cp_quantile))
         
         # TODO: Check if use_linearized_controller = True/False matters
         super().__init__(
