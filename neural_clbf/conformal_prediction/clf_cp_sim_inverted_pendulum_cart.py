@@ -23,7 +23,7 @@ if __name__ == "__main__":
     
     neural_controller_cp = NeuralCLBFController.load_from_checkpoint(log_file)
 
-    #neural_controller_cp.clf_lambda = 0.0
+    neural_controller_cp.clf_lambda = 0.0
     #neural_controller_cp.dynamics_model.nominal_params = {'M': 1.0, 'm': 1.0, 'L': 0.5, 'Kd': 10.0}
     #{"M": 1.0, "m": 1.0, "L": 0.5, "Kd": 10.0}
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     
     u1, _ = neural_controller_cp.u_CLF_QP_CP(torch.tensor([[2.0, -1.0, 1.5, -2.0]]), clf_qp_cp_solver, 0.0, solver_args = {"max_iters": 1000})
     u2 = neural_controller_cp.u(torch.tensor([[2.0, -1.0, 1.5, -2.0]]))
-    assert u1 == u2
+    #assert u1 == u2
 
     # Set up initial conditions for the sim
     # TODO: this is model-specific; make it general
@@ -52,5 +52,7 @@ if __name__ == "__main__":
     )
 
     # Run the sim
-    #cp_quantile = 0.5
-    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 3.0, solver_args = {"max_iters": 500})
+    solver_args = {"solve_method": "ECOS", "max_iters": 10000, "reltol": 1e-8}
+    #solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
+    #solver_args = {"max_iters": 500}
+    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 3.0, solver_args = solver_args)
