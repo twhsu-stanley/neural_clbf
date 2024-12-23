@@ -61,10 +61,10 @@ def main(args):
         initial_conditions,
         trajectories_per_episode = 0,
         trajectory_length = 1,
-        fixed_samples = 10000,
+        fixed_samples = 100000,
         max_points = 100000,
         val_split = 0.1,
-        batch_size = 64,
+        batch_size = 64 * 2,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
     )
 
@@ -123,13 +123,13 @@ def main(args):
         data_module,
         experiment_suite = experiment_suite,
         clbf_hidden_layers = 4,
-        clbf_hidden_size = 64,
+        clbf_hidden_size = 64 * 2,
         clf_lambda = 0.0,
         safe_level = 1.0,
         controller_period = controller_period,
-        clf_relaxation_penalty = 1e4,
+        clf_relaxation_penalty = 1e6,
         primal_learning_rate = 1e-3,
-        num_init_epochs = 5,
+        num_init_epochs = 11,
         epochs_per_episode = 100,
         barrier = False,
         disable_gurobi = True,
@@ -138,7 +138,7 @@ def main(args):
         roa_regulator = False,
         #roa_regulator_alpha = 6.0,
         cp_learning = True,
-        solver_args = {"solve_method": "ECOS"}
+        solver_args = {"eps": 1e-8, "acceleration_lookback": 0}
     )
     #solver_args = {"solve_method": "ECOS", "max_iters": 1000, "reltol": 1e-8}
     #solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
@@ -153,7 +153,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 121,
+        max_epochs = 151,
         stochastic_weight_avg = True
     )
 
