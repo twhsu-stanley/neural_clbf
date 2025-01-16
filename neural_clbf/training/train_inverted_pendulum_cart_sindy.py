@@ -61,10 +61,10 @@ def main(args):
         initial_conditions,
         trajectories_per_episode = 0,
         trajectory_length = 1,
-        fixed_samples = 100000,
+        fixed_samples = 10000,
         max_points = 100000,
         val_split = 0.1,
-        batch_size = 64 * 2,
+        batch_size = 64,
         # quotas={"safe": 0.2, "unsafe": 0.2, "goal": 0.4},
     )
 
@@ -113,7 +113,7 @@ def main(args):
         t_sim = 2.0,
     )
     experiment_suite = ExperimentSuite(
-        [V_contour_experiment_2, rollout_experiment_2]
+        []
     )
     
     # Initialize the controller
@@ -138,7 +138,7 @@ def main(args):
         roa_regulator = False,
         #roa_regulator_alpha = 6.0,
         cp_learning = True,
-        solver_args = {"eps": 1e-8, "acceleration_lookback": 0}
+        solver_args = {"max_iters": 1000}
     )
     #solver_args = {"solve_method": "ECOS", "max_iters": 1000, "reltol": 1e-8}
     #solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
@@ -153,7 +153,7 @@ def main(args):
         logger = tb_logger,
         reload_dataloaders_every_epoch = True,
         gradient_clip_val = 0.5,
-        max_epochs = 151,
+        max_epochs = 121,
         stochastic_weight_avg = True
     )
 

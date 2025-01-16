@@ -19,11 +19,14 @@ if __name__ == "__main__":
     #log_file = "./logs/inverted_pendulum_cart_sindy/4L_2e4s/version_1/checkpoints/epoch=150-step=56631.ckpt"
 
     # SINDy [worked w/ run iter = 500]: 4L; 1e4 samples; train iter = 1000; CLBF with roa_reg and positive_loss
-    log_file = "./logs/inverted_pendulum_cart_sindy/4L_1e4s_roa_regulator/version_2/checkpoints/epoch=120-step=19880.ckpt"
+    #log_file = "./logs/inverted_pendulum_cart_sindy/4L_1e4s_roa_regulator/version_2/checkpoints/epoch=120-step=19880.ckpt"
+
+    # SINDy [worked w/ ?]: 4L; 1e4 samples; cp_learning; solver_args
+    log_file = "./logs/inverted_pendulum_cart_sindy/4L_1e4s_cp_solvarg/version_5/checkpoints/epoch=120-step=19880.ckpt"
     
     neural_controller_cp = NeuralCLBFController.load_from_checkpoint(log_file)
 
-    neural_controller_cp.clf_lambda = 0.0
+    #neural_controller_cp.clf_lambda = 0.0
     #neural_controller_cp.dynamics_model.nominal_params = {'M': 1.0, 'm': 1.0, 'L': 0.5, 'Kd': 10.0}
     #{"M": 1.0, "m": 1.0, "L": 0.5, "Kd": 10.0}
 
@@ -46,13 +49,16 @@ if __name__ == "__main__":
     # TODO: this is model-specific; make it general
     start_x = torch.tensor(
         [
-            [-1.0, -5.0, 0.0, -5.0],
+            [0.0, 0.0, 0.8, 0.0],
             #[0.0, 0.0, -0.8, 0.0],
+            #[0.0, 0.0, 0.9, 0.0],
+            #[0.0, 0.0, -0.9, 0.0],
+            #[0.0, 0.0, 1.0, 0.0],
         ]
     )
 
     # Run the sim
-    solver_args = {"solve_method": "ECOS", "max_iters": 10000, "reltol": 1e-8}
+    #solver_args = {"solve_method": "ECOS", "max_iters": 10000, "reltol": 1e-8}
     #solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
-    #solver_args = {"max_iters": 500}
-    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 3.0, solver_args = solver_args)
+    solver_args = {"max_iters": 1000}
+    clf_cp_simulation(neural_controller_cp, clf_qp_cp_solver, cp_quantile, start_x, T = 2.0, solver_args = solver_args)
