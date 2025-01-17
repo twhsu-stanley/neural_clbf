@@ -71,7 +71,7 @@ def main(args):
         clf_lambda = 0.1,
         safe_level = 1.0,
         controller_period = controller_period,
-        clf_relaxation_penalty = 1e3,
+        clf_relaxation_penalty = 1e2,
         primal_learning_rate = 1e-3,
         num_init_epochs = 11,
         epochs_per_episode = 100,
