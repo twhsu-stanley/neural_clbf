@@ -356,6 +356,7 @@ class NeuralCLBFController(pl.LightningModule, CLFController):
         # Get the control input and relaxation from solving the QP, and aggregate
         # the relaxation across scenarios
         u_qp, qp_relaxation = self.solve_CLF_QP(x, requires_grad=requires_grad)
+        qp_relaxation = F.relu(qp_relaxation)
         qp_relaxation = torch.mean(qp_relaxation, dim=-1)
 
         # Minimize the qp relaxation to encourage satisfying the decrease condition

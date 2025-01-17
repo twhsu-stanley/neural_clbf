@@ -127,7 +127,7 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
             if neural_controller.cp_learning:
                 _, gradV_current = neural_controller.V_with_jacobian(x_current[i, :].unsqueeze(0))
                 gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
-                cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), np.inf) * neural_controller.dynamics_model.cp_quantile # inf-norm * 1-norm
+                cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), 2) * neural_controller.dynamics_model.cp_quantile # inf-norm * 1-norm
             else:
                 cnstr_tightening = 0.0
 
@@ -258,7 +258,7 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
 
             _, gradV_current = neural_controller_cp.V_with_jacobian(x_current_cp[i, :].unsqueeze(0))
             gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
-            cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), np.inf) * cp_quantile # inf-norm * 1-norm
+            cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), 2) * cp_quantile # inf-norm * 1-norm
 
             # Compute control input by solving the CLF-QP-CP problem
             u_current_cp, r_current_cp = neural_controller_cp.u_CLF_QP_CP(x_current_cp[i, :].unsqueeze(0), clf_qp_cp_solver, cnstr_tightening, 
