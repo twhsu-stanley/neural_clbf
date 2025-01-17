@@ -4,7 +4,8 @@ from typing import Dict, List
 import numpy as np
 import scipy.linalg
 import cvxpy as cp
-
+import torch
+torch.set_default_dtype(torch.float64)
 
 # Gravitation acceleration
 grav = 9.80665
@@ -124,3 +125,30 @@ def jacobian_numpy(f, x0, delta = 1e-5) -> np.ndarray:
             x_perturbed[0][j] = x0[0][j]  # Reset the perturbed value
     
     return J
+
+def predict_tensor(x, u, feature_names, coefficients, feature_indices = None):
+    """ Compute the model predciction using expressions for torch tensor operations"""
+    # x: array or tensor (batch_size x n_states)
+    # u: array or tensor (batch_size x n_controls)
+    # feature_names: list (len = n_features)
+    # coefficients: array (size = n_states x n_features)
+
+    if feature_indices is None:
+        n_features = len(feature_names)
+        feature_indices = range(n_features)
+    
+    n_states = coefficients.shape[0]
+    n_controls = u.shape[1]
+    batch_size = x.shape[0]
+
+    for s in range(n_states):
+        locals()[f'x{s}'] = x[:,s]
+
+    for s in range(n_controls):
+        locals()[f'u{s}'] = u[:,s]
+
+    f = torch.zeros((batch_size, n_states), dtype = torch.float64)
+    for s in range(n_states):
+        for i in feature_indices:
+            f[:,s] += eval(feature_names[i]) * coefficients[s,i]
+    return f
