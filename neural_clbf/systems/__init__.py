@@ -12,6 +12,7 @@ from .inverted_pendulum_cart import InvertedPendulumCart
 from .inverted_pendulum_cart_sindy import InvertedPendulumCartSINDy
 from .double_inverted_pendulum import DoubleInvertedPendulum
 from .cartpole_sindy import CartPoleSINDy
+from .dubins_car import DubinsCar
 from .kinematic_single_track_car import KSCar
 from .single_track_car import STCar
 from .segway import Segway
@@ -31,6 +32,7 @@ __all__ = [
     "InvertedPendulumCartSINDy",
     "DoubleInvertedPendulum",
     "CartPoleSINDy",
+    "DubinsCar",
     "Quad2D",
     "Quad3D",
     "NeuralLander",

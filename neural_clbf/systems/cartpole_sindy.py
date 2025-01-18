@@ -35,7 +35,6 @@ for i in range(len(feature_names)):
         idx_x.append(i)
 
 cp_quantile = model.model_error['quantile']
-print("CP alpha = %4.2f; CP quantile = %5.3f" % (model.model_error['alpha'], cp_quantile))
 #################################################################################################
 
 class CartPoleSINDy(ControlAffineSystem):
