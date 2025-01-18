@@ -215,6 +215,11 @@ class DubinsCar(ControlAffineSystem):
         returns:
             u_nominal: bs x self.n_controls tensor of controls
         """
-        u = self.u_eq.type_as(x)
-
-        return u
+        #K = self.K.type_as(x)
+        #goal = self.goal_point.squeeze().type_as(x)
+        #u_nominal = -(K @ (x - goal).T).T * 0.0
+        
+        # Adjust for the equilibrium setpoint
+        #u = u_nominal + self.u_eq.type_as(x)
+        
+        return torch.zeros((x.shape[0], self.n_controls))
