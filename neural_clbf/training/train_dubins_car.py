@@ -63,7 +63,7 @@ def main(args):
         max_points=50000,
         val_split=0.1,
         batch_size=batch_size,
-        quotas={"safe": 0.4, "unsafe": 0.2},
+        #quotas={"safe": 0.4, "unsafe": 0.2},
     )
 
     # Define the experiment suite
