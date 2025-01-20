@@ -103,7 +103,11 @@ class DubinsCar(ControlAffineSystem):
         lower_limit = -1.0 * upper_limit
 
         return (upper_limit, lower_limit)
-
+    
+    @property
+    def goal_point(self):
+        return torch.tensor([[5.0, 0.0, 0.0]])
+    
     def safe_mask(self, x):
         """Return the mask of x indicating safe regions for the obstacle task
 
@@ -215,11 +219,18 @@ class DubinsCar(ControlAffineSystem):
         returns:
             u_nominal: bs x self.n_controls tensor of controls
         """
-        #K = self.K.type_as(x)
-        #goal = self.goal_point.squeeze().type_as(x)
-        #u_nominal = -(K @ (x - goal).T).T * 0.0
+        # u = torch.zeros((x.shape[0], self.n_controls))
         
-        # Adjust for the equilibrium setpoint
-        #u = u_nominal + self.u_eq.type_as(x)
+        # Proportional navigation (we don't care about the heading)
+        Kp = 1.0
+        goal = self.goal_point.squeeze().type_as(x)
+        theta_d = np.arctan2(goal[DubinsCar.Y]- x[:,DubinsCar.Y], goal[DubinsCar.X] - x[:,DubinsCar.X])
+        theta_err = theta_d - x[:,DubinsCar.THETA]
+        theta_err = torch.remainder(theta_err + np.pi, 2 * np.pi) - np.pi #wrapToPi(theta_err)
+        #u = Kp * theta_err + self.u_eq.type_as(x)
+
+        u = torch.zeros((x.shape[0], self.n_controls))
+        u = u.type_as(x)
+        u[:,DubinsCar.U] = Kp * theta_err
         
-        return torch.zeros((x.shape[0], self.n_controls))
+        return u
