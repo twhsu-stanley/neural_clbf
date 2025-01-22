@@ -121,7 +121,7 @@ class DubinsCar(ControlAffineSystem):
         # safe_mask.logical_and_(distance <= 1.0)
 
         # Stay at least some minimum distance from the target
-        safe_mask.logical_and_(distance >= 2.0)
+        safe_mask.logical_and_(distance >= 1.5)
 
         return safe_mask
 
@@ -224,7 +224,7 @@ class DubinsCar(ControlAffineSystem):
         # Proportional navigation (we don't care about the heading)
         Kp = 1.0
         goal = self.goal_point.squeeze().type_as(x)
-        theta_d = np.arctan2(goal[DubinsCar.Y]- x[:,DubinsCar.Y], goal[DubinsCar.X] - x[:,DubinsCar.X])
+        theta_d = torch.atan2(goal[DubinsCar.Y]- x[:,DubinsCar.Y], goal[DubinsCar.X] - x[:,DubinsCar.X])
         theta_err = theta_d - x[:,DubinsCar.THETA]
         theta_err = torch.remainder(theta_err + np.pi, 2 * np.pi) - np.pi #wrapToPi(theta_err)
         #u = Kp * theta_err + self.u_eq.type_as(x)

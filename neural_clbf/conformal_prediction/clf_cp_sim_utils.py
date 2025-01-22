@@ -87,7 +87,7 @@ def weighted_cp_quantile(R, cal_weights, alpha):
 
     return quantile
 
-def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args = {"max_iters": 1000}):
+def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args = {"max_iters": 1000}, plot = True):
 
     # Compute the number of simulations to run
     n_sims = start_x.shape[0]
@@ -138,61 +138,65 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
                 x_current[i, :].unsqueeze(0),
                 u_current
             )
-            u_history[i,:,t] = u_current[i, :].cpu().detach().numpy()
-            r_history[i,t] = r_current[i].cpu().detach().item()
+            u_history[i,:,t] = u_current.cpu().detach().numpy()
+            r_history[i,t] = r_current.cpu().detach().item()
 
             V_current = neural_controller.V(x_current[i, :].unsqueeze(0))
             V_history[i,t] = V_current.cpu().detach().item()
             Lf_V, Lg_V = neural_controller.V_lie_derivatives(x_current[i, :].unsqueeze(0))
-            clf_constraint = Lf_V + Lg_V @ u_current[i, :].T + neural_controller.clf_lambda * V_current
+            clf_constraint = Lf_V + Lg_V @ u_current.T + neural_controller.clf_lambda * V_current
             p_history[i,t] = clf_constraint.cpu().detach().item()
 
             # Propagate the state
             x_current[i, :] = x_current[i, :] + delta_t * xdot.squeeze()
 
     # Plot
-    fig, ax = plt.subplots(n_dims, 1)
-    for d in range(n_dims):
-        ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T)
-        ax[d].grid(True)
-        ax[d].set_ylabel("x [" + str(d) + "]")
-    ax[n_dims-1].set_xlabel("Time (s)")
-    ax[0].set_title("States")
+    if plot == "CLF":
+        fig, ax = plt.subplots(n_dims, 1)
+        for d in range(n_dims):
+            ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T)
+            ax[d].grid(True)
+            ax[d].set_ylabel("x [" + str(d) + "]")
+        ax[n_dims-1].set_xlabel("Time (s)")
+        ax[0].set_title("States")
 
-    fig, ax = plt.subplots(2, 1)
-    for i in range(n_sims):
-        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
-    ax[0].set_ylabel("x 2-norm")
-    ax[0].grid(True)
-    for i in range(n_sims):
-        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:])
-    ax[1].set_xlabel("Time (s)")
-    ax[1].set_ylabel("V(x)")
-    ax[1].grid(True)
-    ax[0].set_title("State Norms and CLFs")
-
-    fig, ax = plt.subplots(n_controls + 1, 1)
-    for u in range(n_controls):
+        fig, ax = plt.subplots(2, 1)
         for i in range(n_sims):
-            ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T)
-        ax[u].set_ylabel("u_QP [" + str(u) + "]")
-        ax[u].grid(True)
-    for i in range(n_sims):
-        ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:])
-    ax[n_controls].set_xlabel("Time (s)")
-    ax[n_controls].set_ylabel("r_QP")
-    ax[n_controls].grid(True)
-    ax[0].set_title("QP Solver")
+            ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
+        ax[0].set_ylabel("x 2-norm")
+        ax[0].grid(True)
+        for i in range(n_sims):
+            ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:])
+        ax[1].set_xlabel("Time (s)")
+        ax[1].set_ylabel("V(x)")
+        ax[1].grid(True)
+        ax[0].set_title("State Norms and CLFs")
 
-    fig, ax = plt.subplots(1, 1)
-    for i in range(n_sims):
-        ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:])
-    ax.set_ylabel("p = Vdot + lambda*V")
-    ax.set_xlabel("Time (s)")
-    ax.grid(True)
-    ax.set_title("CLF Constraints")
+        fig, ax = plt.subplots(n_controls + 1, 1)
+        for u in range(n_controls):
+            for i in range(n_sims):
+                ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T)
+            ax[u].set_ylabel("u_QP [" + str(u) + "]")
+            ax[u].grid(True)
+        for i in range(n_sims):
+            ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:])
+        ax[n_controls].set_xlabel("Time (s)")
+        ax[n_controls].set_ylabel("r_QP")
+        ax[n_controls].grid(True)
+        ax[0].set_title("QP Solver")
 
-    plt.show()
+        fig, ax = plt.subplots(1, 1)
+        for i in range(n_sims):
+            ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:])
+        ax.set_ylabel("p = Vdot + lambda*V")
+        ax.set_xlabel("Time (s)")
+        ax.grid(True)
+        ax.set_title("CLF Constraints")
+
+        plt.show()
+
+    return u_history, r_history, x_history, V_history, p_history
+
 
 def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x, T, solver_args = {"max_iters": 1000}):
 
