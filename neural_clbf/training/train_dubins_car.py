@@ -100,7 +100,7 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite=experiment_suite,
-        cbf_hidden_layers=2,
+        cbf_hidden_layers=3,
         cbf_hidden_size=256,
         cbf_lambda=0.1,
         controller_period=controller_period,
@@ -117,7 +117,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=201
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251
     )
 
     # Train
