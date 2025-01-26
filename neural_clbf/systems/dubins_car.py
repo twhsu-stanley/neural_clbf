@@ -70,7 +70,7 @@ class DubinsCar(ControlAffineSystem):
 
     @property
     def angle_dims(self) -> List[int]:
-        return []
+        return [2]
 
     @property
     def n_controls(self) -> int:
@@ -84,8 +84,8 @@ class DubinsCar(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[DubinsCar.X] = 10.0
-        upper_limit[DubinsCar.Y] = 10.0
+        upper_limit[DubinsCar.X] = 7.0
+        upper_limit[DubinsCar.Y] = 7.0
         upper_limit[DubinsCar.THETA] = np.pi
 
         lower_limit = -1.0 * upper_limit
@@ -106,7 +106,7 @@ class DubinsCar(ControlAffineSystem):
     
     @property
     def goal_point(self):
-        return torch.tensor([[5.0, 0.0, 0.0]])
+        return torch.tensor([[6.0, 0.0, 0.0]])
     
     def safe_mask(self, x):
         """Return the mask of x indicating safe regions for the obstacle task
@@ -121,7 +121,7 @@ class DubinsCar(ControlAffineSystem):
         # safe_mask.logical_and_(distance <= 1.0)
 
         # Stay at least some minimum distance from the target
-        safe_mask.logical_and_(distance >= 1.5)
+        safe_mask.logical_and_(distance >= 2.5)
 
         return safe_mask
 
@@ -138,7 +138,7 @@ class DubinsCar(ControlAffineSystem):
         # unsafe_mask.logical_or_(distance >= 1.5)
 
         # Minimum distance
-        unsafe_mask.logical_or_(distance <= 1.0)
+        unsafe_mask.logical_or_(distance <= 2.0)
 
         return unsafe_mask
 
@@ -222,7 +222,7 @@ class DubinsCar(ControlAffineSystem):
         # u = torch.zeros((x.shape[0], self.n_controls))
         
         # Proportional navigation (we don't care about the heading)
-        Kp = 1.0
+        Kp = 0.8
         goal = self.goal_point.squeeze().type_as(x)
         theta_d = torch.atan2(goal[DubinsCar.Y]- x[:,DubinsCar.Y], goal[DubinsCar.X] - x[:,DubinsCar.X])
         theta_err = theta_d - x[:,DubinsCar.THETA]
