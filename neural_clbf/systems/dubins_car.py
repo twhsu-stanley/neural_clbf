@@ -120,12 +120,12 @@ class DubinsCar(ControlAffineSystem):
         distance = x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2)
         
         v = self.nominal_params['v']
-        distance_dot = 2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + \
-                       2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA])
+        distance_dot = 1/2 * 1/x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2) * \
+            (2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA]))
 
         # Stay at least some minimum distance from the target
         safe_mask.logical_and_(distance >= 2.5)
-        safe_mask.logical_and_(distance_dot >= -1)
+        safe_mask.logical_and_(distance_dot >= -v + 0.1)
 
         return safe_mask
 
@@ -141,12 +141,12 @@ class DubinsCar(ControlAffineSystem):
         distance = x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2)
         
         v = self.nominal_params['v']
-        distance_dot = 2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + \
-                       2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA])
+        distance_dot = 1/2 * 1/x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2) * \
+            (2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA]))
 
         # Minimum distance
         unsafe_mask.logical_or_(distance <= 1.5)
-        unsafe_mask.logical_or_(distance_dot <= -3)
+        unsafe_mask.logical_or_(distance_dot <= -v)
 
         return unsafe_mask
 
