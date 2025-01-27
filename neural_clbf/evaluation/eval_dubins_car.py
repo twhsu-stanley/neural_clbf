@@ -13,30 +13,45 @@ matplotlib.use('TkAgg')
 def plot_linear_satellite():
     # Load the checkpoint file. This should include the experiment suite used during
     # training.
-    log_file = "logs/dubins_car/commit_2b14ba7/version_0/checkpoints/epoch=200-step=35375.ckpt"
+    log_file = "logs/dubins_car/commit_647f58e/version_1/checkpoints/epoch=250-step=70781.ckpt"
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
+
+    #neural_controller.cbf_relaxation_penalty = 1e1
+    #neural_controller.clf_lambda = 0.1
 
     # Create a QP solver
     clf_qp_solver = create_clf_qp_cp_cvxpylayers_solver(neural_controller)
 
     # Set up initial conditions for the sim
     start_x = torch.tensor(
-        [[-3, 0.0, 0.0], [-4, 0, 0], [-2.5, 0.0, 1.0],[-3,-0.5,0]]
+        [[-4, 0.0, 0], 
+         [-4, 1, 0], 
+         [-4, -1, 0],
+         [-5, 0.0, 0], 
+         [-5, 1, 0], 
+         [-5, -1, 0],
+         [-6, 0.0, 0], 
+         [-6, 2, 0], 
+         [-6, -2, 0],
+         [-7, 0.0, 0], 
+         [-7, 1, 0], 
+         [-7, -1, 0],
+         ]
     )
 
     T = 10.0
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     
-    solver_args = {"eps": 1e-8}
+    #solver_args = {"eps": 1e-8}
     u_history, r_history, x_history, V_history, p_history = \
-        clf_simulation(neural_controller, clf_qp_solver, start_x, T = T, solver_args = solver_args, plot = False)
+        clf_simulation(neural_controller, clf_qp_solver, start_x, T = T, plot = False)
     
     fig, ax = plt.subplots(1, 1)
     ax.plot((x_history[:,0,:]).squeeze().T, (x_history[:,1,:]).squeeze().T)
     #(x_history[:,d,:]).squeeze().T
     # Plot the unsafe region
-    circle1 = plt.Circle((0, 0), 1.0, color='r')
+    circle1 = plt.Circle((0, 0), 1.5, color='r')
     ax.add_patch(circle1)
     ax.plot()
     ax.set_ylabel("y")
