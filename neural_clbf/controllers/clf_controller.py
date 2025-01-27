@@ -31,6 +31,8 @@ class CLFController(Controller):
         clf_relaxation_penalty: float = 50.0,
         controller_period: float = 0.01,
         disable_gurobi: bool = False,
+        cp_learning: bool = False,
+        solver_args = {"max_iters": 1000}
     ):
         """Initialize the controller.
 
@@ -54,6 +56,12 @@ class CLFController(Controller):
 
         # Save gurobi attribute to disable if needed
         self.disable_gurobi = disable_gurobi
+
+        # Whether to include conformal prediction in learning
+        self.cp_learning = cp_learning
+
+        # Save the user-specified solver_args for the QP solver
+        self.solver_args = solver_args
 
         # Save the provided model
         # self.dynamics_model = dynamics_model
@@ -89,6 +97,7 @@ class CLFController(Controller):
 
         clf_relaxation_penalty_param = cp.Parameter(1, nonneg=True)
         u_ref_param = cp.Parameter(self.dynamics_model.n_controls)
+        cnstr_tightening = cp.Parameter(1, nonneg=True)
 
         # These allow us to define the constraints
         constraints = []
@@ -98,6 +107,7 @@ class CLFController(Controller):
                 Lf_V_params[i]
                 + Lg_V_params[i] @ u
                 + self.clf_lambda * V_param
+                + cnstr_tightening
                 - clf_relaxations[i]
                 <= 0
             )
@@ -119,7 +129,7 @@ class CLFController(Controller):
         assert problem.is_dpp()
         variables = [u] + clf_relaxations
         parameters = Lf_V_params + Lg_V_params
-        parameters += [V_param, u_ref_param, clf_relaxation_penalty_param]
+        parameters += [V_param, cnstr_tightening, u_ref_param, clf_relaxation_penalty_param]
         self.differentiable_qp_solver = CvxpyLayer(
             problem, variables=variables, parameters=parameters
         )
@@ -318,6 +328,7 @@ class CLFController(Controller):
         V: torch.Tensor,
         Lf_V: torch.Tensor,
         Lg_V: torch.Tensor,
+        cnstr_tightening: torch.Tensor,
         relaxation_penalty: float,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Determine the control input for a given state using a QP. Solves the QP using
@@ -346,13 +357,14 @@ class CLFController(Controller):
         for i in range(self.n_scenarios):
             params.append(Lg_V[:, i, :])
         params.append(V.reshape(-1, 1))
+        params.append(cnstr_tightening)
         params.append(u_ref)
         params.append(torch.tensor([relaxation_penalty]).type_as(x))
 
         # We've already created a parameterized QP solver, so we can use that
         result = self.differentiable_qp_solver(
             *params,
-            solver_args={"max_iters": 1000},
+            solver_args = self.solver_args,
         )
 
         # Extract the results
@@ -385,8 +397,14 @@ class CLFController(Controller):
                         case
         """
         # Get the value of the CLF and its Lie derivatives
-        V = self.V(x)
+        V, gradV = self.V_with_jacobian(x)
         Lf_V, Lg_V = self.V_lie_derivatives(x)
+
+        if self.cp_learning:
+            cnstr_tightening = torch.linalg.norm(gradV.squeeze(1), ord = 2, dim = 1) * self.dynamics_model.cp_quantile # 2-norm * 2-norm
+            cnstr_tightening = cnstr_tightening.reshape(-1, 1)
+        else:
+            cnstr_tightening = torch.tensor([0.0]).type_as(x)
 
         # Get the reference control input as well
         if u_ref is not None:
@@ -407,7 +425,7 @@ class CLFController(Controller):
         # (e.g. due to gurobi licensing issues)
         if requires_grad or self.disable_gurobi:
             return self._solve_CLF_QP_cvxpylayers(
-                x, u_ref, V, Lf_V, Lg_V, relaxation_penalty
+                x, u_ref, V, Lf_V, Lg_V, cnstr_tightening, relaxation_penalty
             )
         else:
             return self._solve_CLF_QP_gurobi(

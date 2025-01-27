@@ -5,36 +5,56 @@ import torch
 import numpy as np
 
 from .control_affine_system import ControlAffineSystem
-from neural_clbf.systems.utils import grav, Scenario, ScenarioList
+from neural_clbf.systems.utils import Scenario, ScenarioList, predict_tensor
 
-import pysindy
+import pickle
 
-import dill, pickle
+grav = 9.81
 
-# Load the SINDY model
-with open('../pysindy/control_affine_models/saved_models/model_inverted_pendulum_cart_sindy', 'rb') as file:
+# Load the SINDy model ##########################################################################
+with open('../pysindy/control_affine_models/saved_models/model_cartpole_sindy', 'rb') as file:
     model = pickle.load(file)
 
-class InvertedPendulumCartSINDy(ControlAffineSystem):
+feature_names = model.get_feature_names()
+n_features = len(feature_names)
+for i in range(n_features):
+    feature_names[i] = feature_names[i].replace(" ", "*")
+    feature_names[i] = feature_names[i].replace("^", "**")
+    feature_names[i] = feature_names[i].replace("sin", "torch.sin")
+    feature_names[i] = feature_names[i].replace("cos", "torch.cos")
+
+coefficients = model.optimizer.coef_
+
+# Get indices of the SINDy regressor corresponding to each state and control input
+idx_x = [] # Indices for f(x)
+idx_u = [] # Indices for g(x)*u
+for i in range(len(feature_names)):
+    if 'u0' in feature_names[i]:
+        idx_u.append(i)
+    else:
+        idx_x.append(i)
+
+cp_quantile = model.model_error['quantile']
+#################################################################################################
+
+class CartPoleSINDy(ControlAffineSystem):
     """
     Represents SINDy model of a damped inverted pendulum on a cart
 
     The system has state
-
-        x = [z, z_dot, theta, theta_dot]
+        x = [z, theta, v, omega]
 
     representing the angle and velocity of the pendulum, and it
     has control inputs
-
         u = [u]
 
     representing the torque applied.
 
     The system is parameterized by
-        M: mass of cart
-        m: mass on the ip
-        L: length of the link
-        Kd: damping coefficient on the cart
+        m: pendulum_mass
+        M: cart_mass
+        L: length
+        b: friction
     """
 
     # Number of states and controls
@@ -43,9 +63,9 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
 
     # State indices
     Z = 0
-    Z_DOT = 1
-    THETA = 2
-    THETA_DOT = 3
+    THETA = 1
+    V = 2
+    OMEGA = 3
 
     # Control indices
     U = 0
@@ -62,43 +82,22 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
 
         args:
             nominal_params: a dictionary giving the parameter values for the system.
-                            Requires keys ["m", "L", "b"]
+                            Requires keys ["m", "M", "L", "b"]
             dt: the timestep to use for the simulation
             controller_dt: the timestep for the LQR discretization. Defaults to dt
         raises:
             ValueError if nominal_params are not valid for this system
         """
-
-        # SINDY model
-        #self.model = learned_model
-
-        # Get indices of the SINDy regressor corresponding to each state and control input
-        feature_names = model.get_feature_names()
-        idx_x = [] # Indices for f(x)
-        idx_u = [] # Indices for g(x)*u
-        for i in range(len(feature_names)):
-            if 'u0' in feature_names[i]:
-                idx_u.append(i)
-            else:
-                idx_x.append(i)
+        self.feature_names = feature_names
+        self.coefficients = coefficients
         self.idx_x = idx_x
         self.idx_u = idx_u
-
-        self.cp_quantile = model.model_error['quantile']
-        print("CP alpha = %4.2f; CP quantile = %5.3f" % (model.model_error['alpha'], self.cp_quantile))
+        self.cp_quantile = cp_quantile
         
         # TODO: Check if use_linearized_controller = True/False matters
         super().__init__(
             nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios
         )
-
-        # Since we aren't using a linearized controller, we need to provide
-        # some guess for a Lyapunov matrix
-        #self.P = torch.eye(self.n_dims)
-        #self.P = torch.tensor([[ 5.6748,  3.2077, -8.2618, -1.8670],
-        #                       [ 3.2077,  2.4812, -6.6064, -1.4238],
-        #                       [-8.2618, -6.6064, 19.8187,  3.8687],
-        #                       [-1.8670, -1.4238,  3.8687,  0.8558]])
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
@@ -113,28 +112,27 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         valid = valid and "M" in params
         valid = valid and "m" in params
         valid = valid and "L" in params
-        valid = valid and "Kd" in params
+        valid = valid and "b" in params
 
         # Make sure all parameters are physically valid
         valid = valid and params["M"] > 0
         valid = valid and params["m"] > 0
         valid = valid and params["L"] > 0
-        valid = valid and params["Kd"] > 0
+        valid = valid and params["b"] >= 0
 
         return valid
 
     @property
     def n_dims(self) -> int:
-        return InvertedPendulumCartSINDy.N_DIMS
+        return CartPoleSINDy.N_DIMS
 
     @property
     def angle_dims(self) -> List[int]:
-        #return [InvertedPendulumCartSINDy.THETA]
-        return [] # Testing
+        return []
 
     @property
     def n_controls(self) -> int:
-        return InvertedPendulumCartSINDy.N_CONTROLS
+        return CartPoleSINDy.N_CONTROLS
 
     @property
     def state_limits(self) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -144,10 +142,10 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[InvertedPendulumCartSINDy.Z] = 8.0
-        upper_limit[InvertedPendulumCartSINDy.Z_DOT] = 10.0
-        upper_limit[InvertedPendulumCartSINDy.THETA] = np.pi/2
-        upper_limit[InvertedPendulumCartSINDy.THETA_DOT] = 10.0
+        upper_limit[CartPoleSINDy.Z] = 1.0
+        upper_limit[CartPoleSINDy.THETA] = np.pi/6
+        upper_limit[CartPoleSINDy.V] = 1.5
+        upper_limit[CartPoleSINDy.OMEGA] = 1.0
 
         lower_limit = -1.0 * upper_limit
 
@@ -160,8 +158,8 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         limits for this system
         """
         # define upper and lower limits based around the nominal equilibrium input
-        upper_limit = torch.tensor([100.0])
-        lower_limit = -torch.tensor([100.0])
+        upper_limit = torch.tensor([10.0])
+        lower_limit = -torch.tensor([10.0])
 
         return (upper_limit, lower_limit)
     
@@ -219,34 +217,19 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         returns:
             f: bs x self.n_dims x 1 tensor
         """
-        # Extract batch size and set up a tensor for holding the result
+
         batch_size = x.shape[0]
         f = torch.zeros((batch_size, self.n_dims, 1))
         f = f.type_as(x)
 
         # Compute f(x) using the SINDy model
-        Theta = model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
-        coeff = model.optimizer.coef_
-        Theta_x = Theta[:,self.idx_x]
-        coeff_x = coeff[:,self.idx_x]
-        f_of_x = Theta_x @ coeff_x.T
-
-        # Convert AxesArray to tensor
-        f_of_x = torch.tensor(f_of_x)
-
-        # ISSUE: Converting x to a numpy array and then converting it back to a tensor is causing the loss of gradient,
-        #        making the Jacobian (needed for linearizing the model and obtaining the LQR gain) always zero. 
-        # TODO: The best solution seems to be making the in/output of model.get_regressor() both tensors
-
-        #z = x[:, InvertedPendulumCartSINDy.Z]
-        #z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
-        #theta = x[:, InvertedPendulumCartSINDy.THETA]
-        #theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
-
-        f[:, InvertedPendulumCartSINDy.Z, 0] = f_of_x[:,0]
-        f[:, InvertedPendulumCartSINDy.Z_DOT, 0] = f_of_x[:,1]
-        f[:, InvertedPendulumCartSINDy.THETA, 0] = f_of_x[:,2]
-        f[:, InvertedPendulumCartSINDy.THETA_DOT, 0] = f_of_x[:,3]
+        # TODO
+        f_of_x = predict_tensor(x, torch.zeros((batch_size,1)), self.feature_names, self.coefficients, self.idx_x)
+        
+        f[:, CartPoleSINDy.Z, 0] = f_of_x[:,0]
+        f[:, CartPoleSINDy.THETA, 0] = f_of_x[:,1]
+        f[:, CartPoleSINDy.V, 0] = f_of_x[:,2]
+        f[:, CartPoleSINDy.OMEGA, 0] = f_of_x[:,3]
 
         return f
 
@@ -261,26 +244,20 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         returns:
             g: bs x self.n_dims x self.n_controls tensor
         """
-        # Extract batch size and set up a tensor for holding the result
+
         batch_size = x.shape[0]
         g = torch.zeros((batch_size, self.n_dims, self.n_controls))
         g = g.type_as(x)
 
         # Compute g(x) using the SINDy model
-        Theta = model.get_regressor(x.detach().numpy(), u = np.ones((batch_size,1)))
-        coeff = model.optimizer.coef_
-        Theta_u = Theta[:,self.idx_u]
-        coeff_u = coeff[:,self.idx_u]
-        g_of_x = Theta_u @ coeff_u.T
-
-        # Convert AxesArray to tensor
-        g_of_x = torch.tensor(g_of_x)
+        # TODO
+        g_of_x = predict_tensor(x, torch.ones((batch_size,1)), self.feature_names, self.coefficients, feature_indices = self.idx_u)
 
         # Effect on theta dot
-        g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = g_of_x[:,0]
-        g[:, InvertedPendulumCartSINDy.Z_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,1]
-        g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = g_of_x[:,2]
-        g[:, InvertedPendulumCartSINDy.THETA_DOT, InvertedPendulumCartSINDy.U] = g_of_x[:,3]
+        g[:, CartPoleSINDy.Z, CartPoleSINDy.U] = g_of_x[:,0]
+        g[:, CartPoleSINDy.THETA, CartPoleSINDy.U] = g_of_x[:,1]
+        g[:, CartPoleSINDy.V, CartPoleSINDy.U] = g_of_x[:,2]
+        g[:, CartPoleSINDy.OMEGA, CartPoleSINDy.U] = g_of_x[:,3]
 
         return g
     
@@ -298,7 +275,7 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
             u_nominal: bs x self.n_controls tensor of controls
         """
         # Compute nominal control from feedback + equilibrium control
-        K = self.K.type_as(x) # torch.tensor([[-0.9500, -20.1210, 77.3411, 15.1780]])
+        K = self.K.type_as(x)
         goal = self.goal_point.squeeze().type_as(x)
         u_nominal = -(K @ (x - goal).T).T
 
@@ -332,23 +309,30 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         f = torch.zeros((batch_size, self.n_dims, 1))
         f = f.type_as(x)
 
+        # Extract the state variables
+        z = x[:, CartPoleSINDy.Z]
+        theta = x[:, CartPoleSINDy.THETA]
+        v = x[:, CartPoleSINDy.V]
+        omega = x[:, CartPoleSINDy.OMEGA]
+
         # Extract the needed parameters
         M, m = params["M"], params["m"]
-        L, Kd = params["L"], params["Kd"]
+        L, b = params["L"], params["b"]
+        g = grav
 
-        # Extract the state variables
-        z = x[:, InvertedPendulumCartSINDy.Z]
-        z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
-        theta = x[:, InvertedPendulumCartSINDy.THETA]
-        theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
+        #################################################################################################
+        # TODO:
+        F = 0
+        det = M + m * torch.mul(torch.sin(theta), torch.sin(theta))
+        f_v_dot = (F - b * v - m * L * torch.mul(omega, omega) * torch.sin(theta)  + 0.5 * m * g * torch.sin(2 * theta)) / det
+        f_omega_dot = (F * torch.cos(theta) - 0.5 * m * L * torch.mul(omega, omega) * torch.sin(2 * theta) - b * torch.mul(v, torch.cos(theta))
+                    + (m + M) * g * torch.sin(theta)) / (det * L)
+        #################################################################################################
 
-        f_z_ddot = (-Kd*z_dot - m*L*theta_dot**2*torch.sin(theta) + m*grav*torch.sin(theta)*torch.cos(theta)) / (M + m*torch.sin(theta)**2)
-        f_theta_ddot = (grav*torch.sin(theta) + (-Kd*z_dot - m*L*theta_dot**2*torch.sin(theta))*torch.cos(theta)/(M + m)) / (L - m*L*torch.cos(theta)**2/(M + m))
-
-        f[:, InvertedPendulumCartSINDy.Z, 0] = z_dot
-        f[:, InvertedPendulumCartSINDy.Z_DOT, 0] = f_z_ddot
-        f[:, InvertedPendulumCartSINDy.THETA, 0] = theta_dot
-        f[:, InvertedPendulumCartSINDy.THETA_DOT, 0] = f_theta_ddot
+        f[:, CartPoleSINDy.Z, 0] = v
+        f[:, CartPoleSINDy.THETA, 0] = omega
+        f[:, CartPoleSINDy.V, 0] = f_v_dot
+        f[:, CartPoleSINDy.OMEGA, 0] = f_omega_dot
 
         return f
     
@@ -370,21 +354,22 @@ class InvertedPendulumCartSINDy(ControlAffineSystem):
         
         # Extract the needed parameters
         M, m = params["M"], params["m"]
-        L, Kd = params["L"], params["Kd"]
+        L, b = params["L"], params["b"]
 
         # Extract the state variables
-        #z = x[:, InvertedPendulumCartSINDy.Z]
-        #z_dot = x[:, InvertedPendulumCartSINDy.Z_DOT]
-        theta = x[:, InvertedPendulumCartSINDy.THETA]
-        #theta_dot = x[:, InvertedPendulumCartSINDy.THETA_DOT]
+        z = x[:, CartPoleSINDy.Z]
+        theta = x[:, CartPoleSINDy.THETA]
+        v = x[:, CartPoleSINDy.V]
+        omega = x[:, CartPoleSINDy.OMEGA]
         
-        g_z_ddot = 1 / (M + m*torch.sin(theta)**2)
-        g_theta_ddot = (torch.cos(theta)/(M + m)) / (L - m*L*torch.cos(theta)**2/(M + m))
+        det = M + m * torch.mul(torch.sin(theta), torch.sin(theta))
+        g_v_dot = 1 / det
+        g_omega_dot = torch.cos(theta) / (det * L)
 
-        #g[:, InvertedPendulumCartSINDy.Z, InvertedPendulumCartSINDy.U] = 0
-        g[:, InvertedPendulumCartSINDy.Z_DOT, InvertedPendulumCartSINDy.U] = g_z_ddot
-        #g[:, InvertedPendulumCartSINDy.THETA, InvertedPendulumCartSINDy.U] = 0
-        g[:, InvertedPendulumCartSINDy.THETA_DOT, InvertedPendulumCartSINDy.U] = g_theta_ddot
+        g[:, CartPoleSINDy.Z, CartPoleSINDy.U] = 0
+        g[:, CartPoleSINDy.THETA, CartPoleSINDy.U] = 0
+        g[:, CartPoleSINDy.V, CartPoleSINDy.U] = g_v_dot
+        g[:, CartPoleSINDy.OMEGA, CartPoleSINDy.U] = g_omega_dot
 
         return g
 

@@ -87,7 +87,7 @@ def weighted_cp_quantile(R, cal_weights, alpha):
 
     return quantile
 
-def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args = {"max_iters": 1000}):
+def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args = {"max_iters": 1000}, plot = True):
 
     # Compute the number of simulations to run
     n_sims = start_x.shape[0]
@@ -121,70 +121,82 @@ def clf_simulation(neural_controller, clf_qp_cp_solver, start_x, T, solver_args 
 
         x_history[:,:,t] = x_current.cpu().detach().numpy()
 
-        # Compute control input by solving the CLF-QP problem using the nominal (learned) model
-        #u_current, r_current = neural_controller.solve_CLF_QP(x_current)
-        u_current, r_current = neural_controller.u_CLF_QP_CP(x_current, clf_qp_cp_solver, 0.0, solver_args = solver_args)
-        
         for i in range(n_sims):
+
+            # Compute control input by solving the CLF-QP problem using the nominal (learned) model
+            if neural_controller.cp_learning:
+                _, gradV_current = neural_controller.V_with_jacobian(x_current[i, :].unsqueeze(0))
+                gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
+                cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), 2) * neural_controller.dynamics_model.cp_quantile # inf-norm * 1-norm
+            else:
+                cnstr_tightening = 0.0
+
+            u_current, r_current = neural_controller.u_CLF_QP_CP(x_current[i, :].unsqueeze(0), clf_qp_cp_solver, cnstr_tightening, solver_args = solver_args)
+
+            # Compute xdot using the nominal (learned) model
             xdot = neural_controller.dynamics_model.closed_loop_dynamics(
                 x_current[i, :].unsqueeze(0),
-                u_current[i, :].unsqueeze(0)
+                u_current
             )
-            u_history[i,:,t] = u_current[i, :].cpu().detach().numpy()
-            r_history[i,t] = r_current[i].cpu().detach().item()
+            u_history[i,:,t] = u_current.cpu().detach().numpy()
+            r_history[i,t] = r_current.cpu().detach().item()
 
             V_current = neural_controller.V(x_current[i, :].unsqueeze(0))
             V_history[i,t] = V_current.cpu().detach().item()
             Lf_V, Lg_V = neural_controller.V_lie_derivatives(x_current[i, :].unsqueeze(0))
-            clf_constraint = Lf_V + Lg_V @ u_current[i, :].T + neural_controller.clf_lambda * V_current
+            clf_constraint = Lf_V + Lg_V @ u_current.T + neural_controller.clf_lambda * V_current
             p_history[i,t] = clf_constraint.cpu().detach().item()
 
             # Propagate the state
             x_current[i, :] = x_current[i, :] + delta_t * xdot.squeeze()
 
     # Plot
-    fig, ax = plt.subplots(n_dims, 1)
-    for d in range(n_dims):
-        ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T)
-        ax[d].grid(True)
-        ax[d].set_ylabel("x [" + str(d) + "]")
-    ax[n_dims-1].set_xlabel("Time (s)")
-    ax[0].set_title("States")
+    if plot == "CLF":
+        fig, ax = plt.subplots(n_dims, 1)
+        for d in range(n_dims):
+            ax[d].plot(np.arange(num_timesteps) * delta_t, (x_history[:,d,:]).squeeze().T)
+            ax[d].grid(True)
+            ax[d].set_ylabel("x [" + str(d) + "]")
+        ax[n_dims-1].set_xlabel("Time (s)")
+        ax[0].set_title("States")
 
-    fig, ax = plt.subplots(2, 1)
-    for i in range(n_sims):
-        ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
-    ax[0].set_ylabel("x 2-norm")
-    ax[0].grid(True)
-    for i in range(n_sims):
-        ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:])
-    ax[1].set_xlabel("Time (s)")
-    ax[1].set_ylabel("V(x)")
-    ax[1].grid(True)
-    ax[0].set_title("State Norms and CLFs")
-
-    fig, ax = plt.subplots(n_controls + 1, 1)
-    for u in range(n_controls):
+        fig, ax = plt.subplots(2, 1)
         for i in range(n_sims):
-            ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T)
-        ax[u].set_ylabel("u_QP [" + str(u) + "]")
-        ax[u].grid(True)
-    for i in range(n_sims):
-        ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:])
-    ax[n_controls].set_xlabel("Time (s)")
-    ax[n_controls].set_ylabel("r_QP")
-    ax[n_controls].grid(True)
-    ax[0].set_title("QP Solver")
+            ax[0].plot(np.arange(num_timesteps) * delta_t, np.linalg.norm(x_history[i,:,:].squeeze().T, axis=1))
+        ax[0].set_ylabel("x 2-norm")
+        ax[0].grid(True)
+        for i in range(n_sims):
+            ax[1].plot(np.arange(num_timesteps) * delta_t, V_history[i,:])
+        ax[1].set_xlabel("Time (s)")
+        ax[1].set_ylabel("V(x)")
+        ax[1].grid(True)
+        ax[0].set_title("State Norms and CLFs")
 
-    fig, ax = plt.subplots(1, 1)
-    for i in range(n_sims):
-        ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:])
-    ax.set_ylabel("p = Vdot + lambda*V")
-    ax.set_xlabel("Time (s)")
-    ax.grid(True)
-    ax.set_title("CLF Constraints")
+        fig, ax = plt.subplots(n_controls + 1, 1)
+        for u in range(n_controls):
+            for i in range(n_sims):
+                ax[u].plot(np.arange(num_timesteps) * delta_t, u_history[i,u,:].squeeze().T)
+            ax[u].set_ylabel("u_QP [" + str(u) + "]")
+            ax[u].grid(True)
+        for i in range(n_sims):
+            ax[n_controls].plot(np.arange(num_timesteps) * delta_t, r_history[i,:])
+        ax[n_controls].set_xlabel("Time (s)")
+        ax[n_controls].set_ylabel("r_QP")
+        ax[n_controls].grid(True)
+        ax[0].set_title("QP Solver")
 
-    plt.show()
+        fig, ax = plt.subplots(1, 1)
+        for i in range(n_sims):
+            ax.plot(np.arange(num_timesteps) * delta_t, p_history[i,:])
+        ax.set_ylabel("p = Vdot + lambda*V")
+        ax.set_xlabel("Time (s)")
+        ax.grid(True)
+        ax.set_title("CLF Constraints")
+
+        plt.show()
+
+    return u_history, r_history, x_history, V_history, p_history
+
 
 def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x, T, solver_args = {"max_iters": 1000}):
 
@@ -249,8 +261,8 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
         for i in range(n_sims):
 
             _, gradV_current = neural_controller_cp.V_with_jacobian(x_current_cp[i, :].unsqueeze(0))
-            gradV_current = gradV_current.squeeze(0).cpu().detach().numpy()
-            cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), np.inf) * cp_quantile # inf-norm * 1-norm
+            gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
+            cnstr_tightening = np.linalg.norm(gradV_current.squeeze(), 2) * cp_quantile # inf-norm * 1-norm
 
             # Compute control input by solving the CLF-QP-CP problem
             u_current_cp, r_current_cp = neural_controller_cp.u_CLF_QP_CP(x_current_cp[i, :].unsqueeze(0), clf_qp_cp_solver, cnstr_tightening, 
@@ -276,12 +288,13 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
             x_current_cp[i, :] = x_current_cp[i, :] + delta_t * xdot.squeeze()
         
         """2. Simulation using the ground truth model and weighted-CP-CLF-QP"""
+        """
         x_history_wcp[:,:,t] = x_current_wcp.cpu().detach().numpy()
 
         for i in range(n_sims):
 
             _, gradV_current = neural_controller_wcp.V_with_jacobian(x_current_wcp[i, :].unsqueeze(0))
-            gradV_current = gradV_current.squeeze(0).cpu().detach().numpy()
+            gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
             
             if t >= window_size:
                 # sliding window of the 1-norm of modeling error as the nonconformity scores
@@ -320,14 +333,16 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
 
             # Propagate the state
             x_current_wcp[i, :] = x_current_wcp[i, :] + delta_t * xdot.squeeze()
+        """
 
         """3. Simulation using the ground truth model and non-CP CLF-QP """
+        """
         x_history_0[:,:,t] = x_current_0.cpu().detach().numpy()
 
         for i in range(n_sims):
 
             _, gradV_current = neural_controller_0.V_with_jacobian(x_current_0[i, :].unsqueeze(0))
-            gradV_current = gradV_current.squeeze(0).cpu().detach().numpy()
+            gradV_current = gradV_current.squeeze(1).cpu().detach().numpy()
 
             # Compute control input by solving the CLF-QP problem using the nominal (learned) model
             u_current_0, r_current_0 = neural_controller_0.u_CLF_QP_CP(x_current_0[i, :].unsqueeze(0), clf_qp_cp_solver, 0.0, 
@@ -351,6 +366,7 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
 
             # Propagate the state
             x_current_0[i, :] = x_current_0[i, :] + delta_t * xdot.squeeze()
+        """
 
     # Plot
     fig, ax = plt.subplots(n_dims, 1)
