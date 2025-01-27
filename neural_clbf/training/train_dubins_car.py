@@ -69,7 +69,7 @@ def main(args):
     # Define the experiment suite
     V_contour_experiment = CLFContourExperiment(
         "V_Contour",
-        domain=[(-10.0, 10.0), (-10.0, 10.0)],
+        domain=[(-7.0, 7.0), (-7.0, 7.0)],
         n_grid=25,
         x_axis_index=DubinsCar.X,
         y_axis_index=DubinsCar.Y,
@@ -85,7 +85,7 @@ def main(args):
         plot_y_label="$y$",
         scenarios=[nominal_params],
         n_sims_per_start=1,
-        t_sim=10.0,
+        t_sim=5.0,
     )
     experiment_suite = ExperimentSuite(
         [
@@ -106,8 +106,8 @@ def main(args):
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
-        primal_learning_rate=1e-3,
-        learn_shape_epochs=50,
+        primal_learning_rate=5e-4,
+        learn_shape_epochs=60,
         #use_relu=True,
     )
 
@@ -117,7 +117,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, gradient_clip_val = 0.5, max_epochs=301
     )
 
     # Train
