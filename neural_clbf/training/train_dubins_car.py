@@ -34,7 +34,7 @@ simulation_dt = 0.01
 def main(args):
     # Define the scenarios
     nominal_params = {
-        "v": 1.0,
+        "v": 0.5,
     }
     scenarios = [
         nominal_params,
@@ -59,7 +59,7 @@ def main(args):
         initial_conditions,
         trajectories_per_episode=0,
         trajectory_length=1,
-        fixed_samples=20000,
+        fixed_samples=30000,
         max_points=50000,
         val_split=0.1,
         batch_size=batch_size,
@@ -101,14 +101,14 @@ def main(args):
         data_module,
         experiment_suite=experiment_suite,
         cbf_hidden_layers=4,
-        cbf_hidden_size=64,
+        cbf_hidden_size=128,
         cbf_lambda=0.1,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
         primal_learning_rate=1e-3,
-        learn_shape_epochs=10,
-        use_relu=True,
+        learn_shape_epochs=50,
+        #use_relu=True,
     )
 
     # Initialize the logger and trainer
@@ -117,7 +117,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=200
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251
     )
 
     # Train
