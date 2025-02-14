@@ -70,7 +70,7 @@ def main(args):
         max_points=50000,
         val_split=0.1,
         batch_size=batch_size,
-        quotas={"goal": 0.4, "safe": 0.2},
+        #quotas={"goal": 0.4, "safe": 0.2},
     )
 
     # Define the experiment suite
@@ -108,13 +108,13 @@ def main(args):
         data_module,
         experiment_suite=experiment_suite,
         cbf_hidden_layers=2,
-        cbf_hidden_size=256,
-        cbf_lambda=0.1,
+        cbf_hidden_size=64,
+        cbf_lambda=2.0,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
         primal_learning_rate=1e-3,
-        learn_shape_epochs=100,
+        learn_shape_epochs=50,
         use_relu=True,
     )
 
@@ -124,7 +124,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=201
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=101
     )
 
     # Train
