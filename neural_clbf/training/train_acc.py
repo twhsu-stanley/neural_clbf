@@ -52,7 +52,6 @@ def main(args):
         dt=simulation_dt,
         controller_dt=controller_period,
         scenarios=scenarios,
-        use_l1_norm=True,
     )
 
     # Initialize the DataModule

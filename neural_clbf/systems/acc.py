@@ -31,7 +31,6 @@ class ACC(ControlAffineSystem):
         dt: float = 0.01,
         controller_dt: Optional[float] = None,
         scenarios: Optional[ScenarioList] = None,
-        use_l1_norm: bool = False,
     ):
         """
         Initialize the inverted pendulum.
@@ -47,7 +46,6 @@ class ACC(ControlAffineSystem):
         super().__init__(
             nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios
         )
-        self.use_l1_norm = use_l1_norm
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
