@@ -56,7 +56,7 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (0.0, 1.0),
+        (0.0, 0.0),
         (20.0, 30.0),
         (25.0, 30.0), 
     ]
@@ -91,7 +91,7 @@ def main(args):
         plot_y_label="$z$",
         scenarios=[nominal_params],
         n_sims_per_start=1,
-        t_sim=2.0,
+        t_sim=1.0,
     )
     experiment_suite = ExperimentSuite(
         [
@@ -107,13 +107,13 @@ def main(args):
         data_module,
         experiment_suite=experiment_suite,
         cbf_hidden_layers=2,
-        cbf_hidden_size=64,
+        cbf_hidden_size=256,
         cbf_lambda=2.0,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
-        primal_learning_rate=1e-3,
-        learn_shape_epochs=50,
+        primal_learning_rate=5e-3,
+        learn_shape_epochs=100,
         use_relu=True,
     )
 
@@ -123,7 +123,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=101
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, gradient_clip_val = 0.5, max_epochs=201
     )
 
     # Train

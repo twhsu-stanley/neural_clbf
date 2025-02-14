@@ -93,14 +93,14 @@ class ACC(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[ACC.P] = 100.0
+        upper_limit[ACC.P] = 50.0
         upper_limit[ACC.V] = 35.0
         upper_limit[ACC.Z] = 30.0
 
         lower_limit = torch.ones(self.n_dims)
-        lower_limit[ACC.P] = 0.0
-        lower_limit[ACC.V] = 0.0
-        lower_limit[ACC.Z] = 0.0
+        lower_limit[ACC.P] = -5.0
+        lower_limit[ACC.V] = -5.0
+        lower_limit[ACC.Z] = -5.0
 
         return (upper_limit, lower_limit)
 
@@ -124,7 +124,8 @@ class ACC(ControlAffineSystem):
         """
         safe_mask = torch.ones_like(x[:, 0], dtype=torch.bool)
         Th = self.nominal_params['Th']
-        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.1)
+        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.2)
+        safe_mask.logical_and_(x[:, ACC.V] > 0.2)
 
         return safe_mask
 
@@ -137,6 +138,7 @@ class ACC(ControlAffineSystem):
         unsafe_mask = torch.zeros_like(x[:, 0], dtype=torch.bool)
         Th = self.nominal_params['Th']
         unsafe_mask.logical_or_(x[:, ACC.Z] - Th * x[:, ACC.V] <= 0.0)
+        unsafe_mask.logical_or_(x[:, ACC.V] <= 0.0)
 
         return unsafe_mask
 
@@ -147,7 +149,8 @@ class ACC(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         Th = self.nominal_params['Th']
-        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.1
+        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.2
+        goal_mask.logical_and_(x[:, ACC.V] > 0.2)
 
         return goal_mask
 
@@ -209,23 +212,12 @@ class ACC(ControlAffineSystem):
 
         return g
 
-def u_nominal(
-        self, x: torch.Tensor, params: Optional[Scenario] = None
-    ) -> torch.Tensor:
-        """
-        Compute the nominal control for the nominal parameters, using LQR unless
-        overridden
-
-        args:
-            x: bs x self.n_dims tensor of state
-            params: the model parameters used
-        returns:
-            u_nominal: bs x self.n_controls tensor of controls
-        """
-        vd = params["vd"]
+    def u_nominal(self, x: torch.Tensor, params: Optional[Scenario] = None) -> torch.Tensor:
+        """"""
+        vd = self.nominal_params['vd']
         Kp = 100.0
         u = torch.zeros((x.shape[0], self.n_controls))
         u = u.type_as(x)
         u[:,ACC.U] = Kp * (vd - x[:,ACC.V])
-        
+
         return u
