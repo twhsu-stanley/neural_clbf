@@ -25,9 +25,6 @@ class ACC(ControlAffineSystem):
     # Control indices
     U = 0
 
-    # Constant parameters
-    MU = 3.986e14  # Earth's gravitational parameter
-
     def __init__(
         self,
         nominal_params: Scenario,
@@ -129,7 +126,7 @@ class ACC(ControlAffineSystem):
         """
         safe_mask = torch.ones_like(x[:, 0], dtype=torch.bool)
         Th = self.nominal_params['Th']
-        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.001)
+        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.1)
 
         return safe_mask
 
@@ -152,7 +149,7 @@ class ACC(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         Th = self.nominal_params['Th']
-        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.001
+        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.1
 
         return goal_mask
 
