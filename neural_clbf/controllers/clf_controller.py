@@ -32,7 +32,7 @@ class CLFController(Controller):
         controller_period: float = 0.01,
         disable_gurobi: bool = True,
         cp_learning: bool = False,
-        solver_args = {"max_iters": 1000}
+        solver_args = {"eps": 1e-8, "max_iters": 10000}
     ):
         """Initialize the controller.
 
