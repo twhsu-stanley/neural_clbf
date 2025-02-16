@@ -93,14 +93,14 @@ class ACC(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[ACC.P] = 50.0
-        upper_limit[ACC.V] = 35.0
-        upper_limit[ACC.Z] = 30.0
+        upper_limit[ACC.P] = 150.0
+        upper_limit[ACC.V] = 50.0
+        upper_limit[ACC.Z] = 50.0
 
         lower_limit = torch.ones(self.n_dims)
-        lower_limit[ACC.P] = -5.0
-        lower_limit[ACC.V] = -5.0
-        lower_limit[ACC.Z] = -5.0
+        lower_limit[ACC.P] = 0.1
+        lower_limit[ACC.V] = 0.1
+        lower_limit[ACC.Z] = 0.1
 
         return (upper_limit, lower_limit)
 
@@ -124,8 +124,8 @@ class ACC(ControlAffineSystem):
         """
         safe_mask = torch.ones_like(x[:, 0], dtype=torch.bool)
         Th = self.nominal_params['Th']
-        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.2)
-        safe_mask.logical_and_(x[:, ACC.V] > 0.2)
+        safe_mask.logical_and_(x[:, ACC.Z] - Th * x[:, ACC.V] >= 2.0)
+        safe_mask.logical_and_(x[:, ACC.V] > 2.0)
 
         return safe_mask
 
@@ -149,8 +149,8 @@ class ACC(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         Th = self.nominal_params['Th']
-        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 0.2
-        goal_mask.logical_and_(x[:, ACC.V] > 0.2)
+        goal_mask = x[:, ACC.Z] - Th * x[:, ACC.V] >= 1.0
+        goal_mask.logical_and_(x[:, ACC.V] > 1.0)
 
         return goal_mask
 
