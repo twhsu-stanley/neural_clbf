@@ -127,7 +127,7 @@ def main(args):
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
         primal_learning_rate=1e-3,
-        learn_shape_epochs=100,
+        learn_shape_epochs=80,
         use_relu=True,
     )
 
