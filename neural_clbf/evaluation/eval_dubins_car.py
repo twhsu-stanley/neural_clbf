@@ -3,7 +3,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import matplotlib
-
+from neural_clbf.experiments import (
+    ExperimentSuite,
+    CLFContourExperiment,
+)
 from neural_clbf.controllers import NeuralCBFController
 from neural_clbf.conformal_prediction.clf_cp_sim_utils import clf_simulation_gurobi, create_clf_qp_cp_cvxpylayers_solver
 
@@ -12,6 +15,8 @@ matplotlib.use('TkAgg')
 def plot_dubins_cbf():
     # Load the checkpoint file. This should include the experiment suite used during training
     log_file = "logs/dubins_car/commit_b3ccd6c/version_5/checkpoints/epoch=200-step=7235.ckpt"
+    log_file = "logs/dubins_car/commit_622b8ae/version_0/checkpoints/epoch=173-step=6263.ckpt"
+    
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
 
     # Tweak parameters
@@ -19,11 +24,24 @@ def plot_dubins_cbf():
     #neural_controller.clf_lambda = 0.5
     #neural_controller.controller_period = 0.01
 
+    V_contour_experiment = CLFContourExperiment(
+        "V_Contour",
+        domain = [(2.0, 10.0), (1.0, 7.0)],
+        n_grid = 40,
+        x_axis_index = 0,
+        y_axis_index = 1,
+        x_axis_label = "p_x",
+        y_axis_label = "p_y",
+    )
+    neural_controller.experiment_suite = ExperimentSuite([V_contour_experiment])
+    neural_controller.experiment_suite.run_all_and_plot(
+        neural_controller, display_plots = True
+    )
+
     # Set up initial conditions for the sim
     N = 50 # number of trajectories
-    start_x = torch.tensor(
-        torch.hstack((torch.rand(N,1) * 7 + 3, torch.rand(N,1) * 6 + 1, torch.rand(N,1) * 2 * np.pi - np.pi))
-    )
+    start_x = torch.hstack((torch.rand(N,1) * 7 + 3, torch.rand(N,1) * 6 + 1, torch.rand(N,1) * 2 * np.pi - np.pi))
+  
     start_x = start_x[torch.pow(start_x[:,0] - 5.0, 2) + torch.pow(start_x[:,1] - 4.0, 2) >= 3**2, :]
     N = start_x.shape[0]
 
