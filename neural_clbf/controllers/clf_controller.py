@@ -30,7 +30,7 @@ class CLFController(Controller):
         clf_lambda: float = 1.0,
         clf_relaxation_penalty: float = 50.0,
         controller_period: float = 0.01,
-        disable_gurobi: bool = True,
+        disable_gurobi: bool = False,
         cp_learning: bool = False,
         solver_args = {"eps": 1e-8, "max_iters": 10000}
     ):

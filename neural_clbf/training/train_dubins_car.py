@@ -25,7 +25,7 @@ controller_period = 0.01
 
 start_x = torch.tensor(
     [
-        [-5, 0.0, 0.0],
+        [9.0, 4.0, 0.0],
     ]
 )
 simulation_dt = 0.01
@@ -34,7 +34,7 @@ simulation_dt = 0.01
 def main(args):
     # Define the scenarios
     nominal_params = {
-        "v": 0.5,
+        "v": 1.0,
     }
     scenarios = [
         nominal_params,
@@ -50,17 +50,17 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (-1.0, 1.0),  # x
-        (-1.0, 1.0),  # y
-        (-0.01, 0.01),  # theta
+        (2.0, 10.0),  # x
+        (1.0, 7.0),  # y
+        (-3.14159, 3.14159),  # theta
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
         initial_conditions,
         trajectories_per_episode=0,
         trajectory_length=1,
-        fixed_samples=30000,
-        max_points=50000,
+        fixed_samples=10000,
+        max_points=20000,
         val_split=0.1,
         batch_size=batch_size,
         #quotas={"safe": 0.4, "unsafe": 0.2},
@@ -69,8 +69,8 @@ def main(args):
     # Define the experiment suite
     V_contour_experiment = CLFContourExperiment(
         "V_Contour",
-        domain=[(-7.0, 7.0), (-7.0, 7.0)],
-        n_grid=25,
+        domain=[(2.0, 10.0), (1.0, 7.0)],
+        n_grid=15,
         x_axis_index=DubinsCar.X,
         y_axis_index=DubinsCar.Y,
         x_axis_label="$x$",
@@ -85,7 +85,7 @@ def main(args):
         plot_y_label="$y$",
         scenarios=[nominal_params],
         n_sims_per_start=1,
-        t_sim=5.0,
+        t_sim=1.0,
     )
     experiment_suite = ExperimentSuite(
         [
@@ -100,14 +100,14 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite=experiment_suite,
-        cbf_hidden_layers=4,
-        cbf_hidden_size=128,
-        cbf_lambda=0.1,
+        cbf_hidden_layers=2,
+        cbf_hidden_size=256,
+        cbf_lambda=1.0,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=10.0,
-        primal_learning_rate=5e-4,
-        learn_shape_epochs=60,
+        primal_learning_rate=1e-3,
+        learn_shape_epochs=50,
         #use_relu=True,
     )
 
@@ -117,7 +117,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, gradient_clip_val = 0.5, max_epochs=301
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251 #gradient_clip_val = 0.5,
     )
 
     # Train

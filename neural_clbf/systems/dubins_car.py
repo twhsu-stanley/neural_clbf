@@ -70,7 +70,7 @@ class DubinsCar(ControlAffineSystem):
 
     @property
     def angle_dims(self) -> List[int]:
-        return [2]
+        return []#[2]
 
     @property
     def n_controls(self) -> int:
@@ -84,11 +84,14 @@ class DubinsCar(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[DubinsCar.X] = 6.5
-        upper_limit[DubinsCar.Y] = 6.5
+        upper_limit[DubinsCar.X] = 10.0
+        upper_limit[DubinsCar.Y] = 7.0
         upper_limit[DubinsCar.THETA] = np.pi
 
-        lower_limit = -1.0 * upper_limit
+        lower_limit = torch.ones(self.n_dims)
+        lower_limit[DubinsCar.X] = 2.0
+        lower_limit[DubinsCar.Y] = 1.0
+        lower_limit[DubinsCar.THETA] = -np.pi
 
         return (upper_limit, lower_limit)
 
@@ -99,14 +102,14 @@ class DubinsCar(ControlAffineSystem):
         limits for this system
         """
         # define upper and lower limits based around the nominal equilibrium input
-        upper_limit = torch.tensor([np.pi/5])
+        upper_limit = torch.tensor([100])
         lower_limit = -1.0 * upper_limit
 
         return (upper_limit, lower_limit)
     
     @property
     def goal_point(self):
-        return torch.tensor([[6.0, 0.0, 0.0]])
+        return torch.tensor([[2.0, 4.0, 0.0]])
     
     def safe_mask(self, x):
         """Return the mask of x indicating safe regions for the obstacle task
@@ -116,16 +119,11 @@ class DubinsCar(ControlAffineSystem):
         """
         safe_mask = torch.ones_like(x[:, 0], dtype=torch.bool)
 
-        # Stay within some maximum distance from the target
-        distance = x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2)
-        
+        d = torch.pow(x[:,DubinsCar.X] - 5.0, 2) + torch.pow(x[:,DubinsCar.Y] - 4.0, 2) - 4
         v = self.nominal_params['v']
-        distance_dot = 1/2 * 1/x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2) * \
-            (2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA]))
-
-        # Stay at least some minimum distance from the target
-        safe_mask.logical_and_(distance >= 2.5)
-        safe_mask.logical_and_(distance_dot >= -v + 0.1)
+        drate =  (2 * (x[:,DubinsCar.X] - 5.0) * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * (x[:,DubinsCar.Y] - 4.0) * v * torch.sin(x[:,DubinsCar.THETA]))
+        h = 15 * d + drate
+        safe_mask.logical_and_(h >= 33.75)
 
         return safe_mask
 
@@ -137,16 +135,11 @@ class DubinsCar(ControlAffineSystem):
         """
         unsafe_mask = torch.zeros_like(x[:, 0], dtype=torch.bool)
 
-        # Maximum distance
-        distance = x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2)
-        
+        d = torch.pow(x[:,DubinsCar.X] - 5.0, 2) + torch.pow(x[:,DubinsCar.Y] - 4.0, 2) - 4
         v = self.nominal_params['v']
-        distance_dot = 1/2 * 1/x[:, :(DubinsCar.Y + 1)].norm(dim=-1, p=2) * \
-            (2 * x[:,DubinsCar.X] * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * x[:,DubinsCar.Y] * v * torch.sin(x[:,DubinsCar.THETA]))
-
-        # Minimum distance
-        unsafe_mask.logical_or_(distance <= 1.5)
-        unsafe_mask.logical_or_(distance_dot <= -v)
+        drate =  (2 * (x[:,DubinsCar.X] - 5.0) * v * torch.cos(x[:,DubinsCar.THETA]) + 2 * (x[:,DubinsCar.Y] - 4.0) * v * torch.sin(x[:,DubinsCar.THETA]))
+        h = 15 * d + drate
+        unsafe_mask.logical_or_(h < 0)
 
         return unsafe_mask
 
@@ -157,7 +150,7 @@ class DubinsCar(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         # TODO: verify if the goal_mask is not used at all
-        goal_mask = x[:, : DubinsCar.Y + 1].norm(dim=-1, p=2) <= 0.5
+        goal_mask = (torch.pow(x[:,DubinsCar.X] - 2.0, 2) + torch.pow(x[:,DubinsCar.Y] - 4.0, 2) <= 0.1)
 
         return goal_mask
 
@@ -181,8 +174,8 @@ class DubinsCar(ControlAffineSystem):
         v = params["v"]
         
         # and state variables
-        x_ = x[:, DubinsCar.X]
-        y_ = x[:, DubinsCar.Y]
+        #x_ = x[:, DubinsCar.X]
+        #y_ = x[:, DubinsCar.Y]
         theta_ = x[:, DubinsCar.THETA]
 
         f[:, DubinsCar.X, 0] = v * torch.cos(theta_)
@@ -230,7 +223,7 @@ class DubinsCar(ControlAffineSystem):
         # u = torch.zeros((x.shape[0], self.n_controls))
         
         # Proportional navigation (we don't care about the heading)
-        Kp = 0.5
+        Kp = 10.0
         goal = self.goal_point.squeeze().type_as(x)
         theta_d = torch.atan2(goal[DubinsCar.Y]- x[:,DubinsCar.Y], goal[DubinsCar.X] - x[:,DubinsCar.X])
         theta_err = theta_d - x[:,DubinsCar.THETA]

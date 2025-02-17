@@ -415,3 +415,55 @@ def clf_cp_simulation(neural_controller, clf_qp_cp_solver, cp_quantile, start_x,
     fig.tight_layout()
 
     plt.show()
+
+def clf_simulation_gurobi(neural_controller, start_x, T):
+
+    # Compute the number of simulations to run
+    n_sims = start_x.shape[0]
+    
+    # Generate a tensor of start states
+    n_dims = neural_controller.dynamics_model.n_dims
+    n_controls = neural_controller.dynamics_model.n_controls
+    x_sim_start = start_x
+
+    # Make sure everything's on the right device
+    device = "cpu"
+    if hasattr(neural_controller, "device"):
+        device = neural_controller.device  # type: ignore
+    x_current = x_sim_start.to(device)
+
+    # Simulate
+    delta_t = neural_controller.dynamics_model.dt
+    num_timesteps = int(T // delta_t)
+
+    u_history = np.zeros((n_sims, n_controls, num_timesteps))
+    x_history = np.zeros((n_sims, n_dims, num_timesteps))
+    V_history = np.zeros((n_sims, num_timesteps))
+    p_history = np.zeros((n_sims, num_timesteps))
+
+    prog_bar_range = tqdm.trange(
+        0, num_timesteps, desc = "CLF simulation", leave = True
+    )
+    
+    for t in prog_bar_range: #range(num_timesteps):
+        x_history[:,:,t] = x_current.cpu().detach().numpy()
+        for i in range(n_sims):
+            u_current = neural_controller.u(x_current[i, :].unsqueeze(0))
+
+            # Compute xdot using the nominal (learned) model
+            xdot = neural_controller.dynamics_model.closed_loop_dynamics(
+                x_current[i, :].unsqueeze(0),
+                u_current
+            )
+            u_history[i,:,t] = u_current.cpu().detach().numpy()
+
+            V_current = neural_controller.V(x_current[i, :].unsqueeze(0))
+            V_history[i,t] = V_current.cpu().detach().item()
+            Lf_V, Lg_V = neural_controller.V_lie_derivatives(x_current[i, :].unsqueeze(0))
+            clf_constraint = Lf_V + Lg_V @ u_current.T + neural_controller.clf_lambda * V_current
+            p_history[i,t] = clf_constraint.cpu().detach().item()
+
+            # Propagate the state
+            x_current[i, :] = x_current[i, :] + delta_t * xdot.squeeze()
+
+    return u_history, x_history, V_history, p_history
