@@ -404,9 +404,9 @@ class CLFController(Controller):
 
         if self.cp_learning:
             cnstr_tightening = torch.linalg.norm(gradV.squeeze(1), ord = 2, dim = 1) * self.dynamics_model.cp_quantile # 2-norm * 2-norm
+            cnstr_tightening = cnstr_tightening.reshape(-1, 1)
         else:
             cnstr_tightening = torch.tensor([0.0]).type_as(x)
-        cnstr_tightening = cnstr_tightening.reshape(-1, 1)
 
         # Get the reference control input as well
         if u_ref is not None:
