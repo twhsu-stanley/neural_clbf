@@ -32,7 +32,7 @@ class CLFController(Controller):
         controller_period: float = 0.01,
         disable_gurobi: bool = False,
         cp_learning: bool = False,
-        solver_args = {"eps": 1e-8, "max_iters": 10000}
+        solver_args = {"eps": 1e-8, "max_iters": 10000, "acceleration_lookback": 0}
     ):
         """Initialize the controller.
 
@@ -404,9 +404,9 @@ class CLFController(Controller):
 
         if self.cp_learning:
             cnstr_tightening = torch.linalg.norm(gradV.squeeze(1), ord = 2, dim = 1) * self.dynamics_model.cp_quantile # 2-norm * 2-norm
-            cnstr_tightening = cnstr_tightening.reshape(-1, 1)
+            cnstr_tightening = cnstr_tightening.reshape(-1, 1) # to have same shape as V
         else:
-            cnstr_tightening = torch.tensor([0.0]).type_as(x)
+            cnstr_tightening = torch.zeros_like(V)
 
         # Get the reference control input as well
         if u_ref is not None:
