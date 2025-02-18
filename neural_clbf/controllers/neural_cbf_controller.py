@@ -47,6 +47,7 @@ class NeuralCBFController(pl.LightningModule, CBFController):
         scale_parameter: float = 10.0,
         learn_shape_epochs: int = 0,
         use_relu: bool = False,
+        cp_learning: bool = False,
     ):
         """Initialize the controller.
 
@@ -72,6 +73,7 @@ class NeuralCBFController(pl.LightningModule, CBFController):
             cbf_lambda=cbf_lambda,
             cbf_relaxation_penalty=cbf_relaxation_penalty,
             controller_period=controller_period,
+            cp_learning = cp_learning,
         )
         self.save_hyperparameters()
 

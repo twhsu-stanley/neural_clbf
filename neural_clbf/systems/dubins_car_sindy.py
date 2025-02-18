@@ -23,8 +23,16 @@ for i in range(n_features):
 
 coefficients = model["coefficients"]
 
+idx_x = [] # Indices for f(x)
+idx_u = [] # Indices for g(x)*u
+for i in range(len(feature_names)):
+    if 'u0' in feature_names[i]:
+        idx_u.append(i)
+    else:
+        idx_x.append(i)
+        
 cp_quantile = model["model_error"]['quantile']
-print("cp_quantile = ", cp_quantile)
+#print("cp_quantile = ", cp_quantile)
 #################################################################################################
 
 class DubinsCarSINDy(ControlAffineSystem):

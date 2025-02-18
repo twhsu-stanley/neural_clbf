@@ -28,6 +28,7 @@ class CBFController(CLFController):
         cbf_lambda: float = 1.0,
         cbf_relaxation_penalty: float = 50.0,
         controller_period: float = 0.01,
+        cp_learning: bool = False,
     ):
         """Initialize the controller.
 
@@ -46,6 +47,7 @@ class CBFController(CLFController):
             clf_lambda=cbf_lambda,
             clf_relaxation_penalty=cbf_relaxation_penalty,
             controller_period=controller_period,
+            cp_learning = cp_learning,
         )
 
     def V_with_jacobian(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
