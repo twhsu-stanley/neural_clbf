@@ -70,7 +70,7 @@ def main(args):
     V_contour_experiment = CLFContourExperiment(
         "V_Contour",
         domain=[(2.0, 10.0), (1.0, 7.0)],
-        n_grid=15,
+        n_grid=10,
         x_axis_index=DubinsCarSINDy.X,
         y_axis_index=DubinsCarSINDy.Y,
         x_axis_label="$x$",
@@ -108,6 +108,7 @@ def main(args):
         scale_parameter=10.0,
         primal_learning_rate=1e-3,
         learn_shape_epochs=100,
+        cp_learning = True,
         #use_relu=True,
     )
 
