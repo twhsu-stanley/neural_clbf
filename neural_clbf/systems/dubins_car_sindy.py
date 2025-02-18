@@ -4,16 +4,16 @@ from math import sqrt
 
 import torch
 import numpy as np
-import pickle
+import pickle, dill
 
 from .control_affine_system import ControlAffineSystem
 from neural_clbf.systems.utils import Scenario, ScenarioList, predict_tensor
 
 # Load the SINDy model ##########################################################################
-with open('../pysindy/control_affine_models/saved_models/model_dubins_car_sindy', 'rb') as file:
+with open('./SINDy_models/model_dubins_car_sindy', 'rb') as file:
     model = pickle.load(file)
 
-feature_names = model.get_feature_names()
+feature_names = model["feature_names"]
 n_features = len(feature_names)
 for i in range(n_features):
     feature_names[i] = feature_names[i].replace(" ", "*")
@@ -21,18 +21,10 @@ for i in range(n_features):
     feature_names[i] = feature_names[i].replace("sin", "torch.sin")
     feature_names[i] = feature_names[i].replace("cos", "torch.cos")
 
-coefficients = model.optimizer.coef_
+coefficients = model["coefficients"]
 
-# Get indices of the SINDy regressor corresponding to each state and control input
-idx_x = [] # Indices for f(x)
-idx_u = [] # Indices for g(x)*u
-for i in range(len(feature_names)):
-    if 'u0' in feature_names[i]:
-        idx_u.append(i)
-    else:
-        idx_x.append(i)
-
-cp_quantile = model.model_error['quantile']
+cp_quantile = model["model_error"]['quantile']
+print("cp_quantile = ", cp_quantile)
 #################################################################################################
 
 class DubinsCarSINDy(ControlAffineSystem):
