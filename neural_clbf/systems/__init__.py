@@ -7,14 +7,8 @@ from .quad2d import Quad2D
 from .quad3d import Quad3D
 from .neural_lander import NeuralLander
 from .inverted_pendulum import InvertedPendulum
-from .inverted_pendulum_sindy import InvertedPendulumSINDy
-from .inverted_pendulum_cart import InvertedPendulumCart
-from .inverted_pendulum_cart_sindy import InvertedPendulumCartSINDy
-from .double_inverted_pendulum import DoubleInvertedPendulum
-from .cartpole_sindy import CartPoleSINDy
 from .dubins_car import DubinsCar
-#from .dubins_car_sindy import DubinsCarSINDy
-from .acc import ACC
+from .dubins_car_sindy import DubinsCarSINDy
 from .kinematic_single_track_car import KSCar
 from .single_track_car import STCar
 from .segway import Segway
@@ -29,14 +23,8 @@ __all__ = [
     "ObservableSystem",
     "PlanarLidarSystem",
     "InvertedPendulum",
-    "InvertedPendulumSINDy",
-    "InvertedPendulumCart",
-    "InvertedPendulumCartSINDy",
-    "DoubleInvertedPendulum",
-    "CartPoleSINDy",
     "DubinsCar",
     "DubinsCarSINDy",
-    "ACC",
     "Quad2D",
     "Quad3D",
     "NeuralLander",

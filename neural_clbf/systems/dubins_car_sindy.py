@@ -117,10 +117,13 @@ class DubinsCarSINDy(ControlAffineSystem):
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
         upper_limit[DubinsCarSINDy.X] = 10.0
-        upper_limit[DubinsCarSINDy.Y] = 10.0
+        upper_limit[DubinsCarSINDy.Y] = 7.0
         upper_limit[DubinsCarSINDy.THETA] = np.pi
 
-        lower_limit = -1.0 * upper_limit
+        lower_limit = torch.ones(self.n_dims)
+        lower_limit[DubinsCarSINDy.X] = 2.0
+        lower_limit[DubinsCarSINDy.Y] = 1.0
+        lower_limit[DubinsCarSINDy.THETA] = -np.pi
 
         return (upper_limit, lower_limit)
 
@@ -131,14 +134,14 @@ class DubinsCarSINDy(ControlAffineSystem):
         limits for this system
         """
         # define upper and lower limits based around the nominal equilibrium input
-        upper_limit = torch.tensor([np.pi/5])
+        upper_limit = torch.tensor([100])
         lower_limit = -1.0 * upper_limit
 
         return (upper_limit, lower_limit)
     
     @property
     def goal_point(self):
-        return torch.tensor([[5.0, 0.0, 0.0]])
+        return torch.tensor([[2.0, 4.0, 0.0]])
     
     def safe_mask(self, x):
         """Return the mask of x indicating safe regions for the obstacle task
@@ -148,12 +151,11 @@ class DubinsCarSINDy(ControlAffineSystem):
         """
         safe_mask = torch.ones_like(x[:, 0], dtype=torch.bool)
 
-        # Stay within some maximum distance from the target
-        distance = x[:, : DubinsCarSINDy.Y + 1].norm(dim=-1, p=2)
-        # safe_mask.logical_and_(distance <= 1.0)
-
-        # Stay at least some minimum distance from the target
-        safe_mask.logical_and_(distance >= 1.5)
+        d = torch.pow(x[:,DubinsCarSINDy.X] - 5.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 4.0, 2) - 4
+        v = self.nominal_params['v']
+        drate =  (2 * (x[:,DubinsCarSINDy.X] - 5.0) * v * torch.cos(x[:,DubinsCarSINDy.THETA]) + 2 * (x[:,DubinsCarSINDy.Y] - 4.0) * v * torch.sin(x[:,DubinsCarSINDy.THETA]))
+        h = 15 * d + drate
+        safe_mask.logical_and_(h >= 33.75)
 
         return safe_mask
 
@@ -165,12 +167,11 @@ class DubinsCarSINDy(ControlAffineSystem):
         """
         unsafe_mask = torch.zeros_like(x[:, 0], dtype=torch.bool)
 
-        # Maximum distance
-        distance = x[:, : DubinsCarSINDy.Y + 1].norm(dim=-1, p=2)
-        # unsafe_mask.logical_or_(distance >= 1.5)
-
-        # Minimum distance
-        unsafe_mask.logical_or_(distance <= 1.0)
+        d = torch.pow(x[:,DubinsCarSINDy.X] - 5.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 4.0, 2) - 4
+        v = self.nominal_params['v']
+        drate =  (2 * (x[:,DubinsCarSINDy.X] - 5.0) * v * torch.cos(x[:,DubinsCarSINDy.THETA]) + 2 * (x[:,DubinsCarSINDy.Y] - 4.0) * v * torch.sin(x[:,DubinsCarSINDy.THETA]))
+        h = 15 * d + drate
+        unsafe_mask.logical_or_(h < 0)
 
         return unsafe_mask
 
@@ -181,7 +182,7 @@ class DubinsCarSINDy(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         # TODO: verify if the goal_mask is not used at all
-        goal_mask = x[:, : DubinsCarSINDy.Y + 1].norm(dim=-1, p=2) <= 0.5
+        goal_mask = (torch.pow(x[:,DubinsCarSINDy.X] - 2.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 4.0, 2) <= 0.1)
 
         return goal_mask
 
@@ -205,8 +206,8 @@ class DubinsCarSINDy(ControlAffineSystem):
         v = params["v"]
         
         # and state variables
-        x_ = x[:, DubinsCarSINDy.X]
-        y_ = x[:, DubinsCarSINDy.Y]
+        #x_ = x[:, DubinsCarSINDy.X]
+        #y_ = x[:, DubinsCarSINDy.Y]
         theta_ = x[:, DubinsCarSINDy.THETA]
 
         f[:, DubinsCarSINDy.X, 0] = v * torch.cos(theta_)
@@ -307,7 +308,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         # u = torch.zeros((x.shape[0], self.n_controls))
         
         # Proportional navigation (we don't care about the heading)
-        Kp = 1.0
+        Kp = 10.0
         goal = self.goal_point.squeeze().type_as(x)
         theta_d = torch.atan2(goal[DubinsCarSINDy.Y]- x[:,DubinsCarSINDy.Y], goal[DubinsCarSINDy.X] - x[:,DubinsCarSINDy.X])
         theta_err = theta_d - x[:,DubinsCarSINDy.THETA]

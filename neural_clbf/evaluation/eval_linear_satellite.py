@@ -15,12 +15,12 @@ def plot_linear_satellite():
     # Load the checkpoint file. This should include the experiment suite used during
     # training.
     # log_file = "saved_models/review/linear_satellite_cbf.ckpt"
-    log_file = "logs/linear_satellite_cbf/commit_e77aff5/version_2/checkpoints/epoch=168-step=29743.ckpt"
+    log_file = "logs/linear_satellite_cbf/relu/commit_e77aff5/version_2/checkpoints/epoch=198-step=35023.ckpt"
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
 
     # Tweak parameters
-    #neural_controller.cbf_relaxation_penalty = 1e5
-    #neural_controller.clf_lambda = 0.1
+    neural_controller.cbf_relaxation_penalty = 1e9
+    neural_controller.clf_lambda = 0.01
     #neural_controller.controller_period = 0.01
 
     #################################################
@@ -36,7 +36,7 @@ def plot_linear_satellite():
         ]
     )
 
-    T = 8.0
+    T = 4.0
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     
@@ -46,7 +46,7 @@ def plot_linear_satellite():
 
     fig, ax = plt.subplots(1, 1)
     for i in range(start_x.shape[0]):
-        ax.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm((x_history[i,:,:]), ord=2, axis=0))
+        ax.plot(np.arange(num_timesteps) * delta_t, np.linalg.norm((x_history[i,:3,:]), ord=2, axis=0))
     ax.hlines(0.25, 0, (num_timesteps-1)* delta_t, colors='r', linestyles='solid')
     ax.set_ylim(0, None)
     ax.set_xlim(0, None)

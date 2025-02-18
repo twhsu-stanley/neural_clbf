@@ -215,6 +215,7 @@ class CLFController(Controller):
         V: torch.Tensor,
         Lf_V: torch.Tensor,
         Lg_V: torch.Tensor,
+        cnstr_tightening: torch.Tensor,
         relaxation_penalty: float,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Determine the control input for a given state using a QP. Solves the QP using
@@ -294,7 +295,8 @@ class CLFController(Controller):
                 Lg_V_np = Lg_V[batch_idx, i, :].detach().cpu().numpy()
                 Lf_V_np = Lf_V[batch_idx, i, :].detach().cpu().numpy()
                 V_np = V[batch_idx].detach().cpu().numpy()
-                clf_constraint = Lf_V_np + Lg_V_np @ u + self.clf_lambda * V_np
+                cnstr_tightening_np = cnstr_tightening[batch_idx].detach().cpu().numpy()
+                clf_constraint = Lf_V_np + Lg_V_np @ u + self.clf_lambda * V_np + cnstr_tightening_np
                 if allow_relaxation:
                     clf_constraint -= r[i]
                 model.addConstr(clf_constraint <= 0.0, name=f"Scenario {i} Decrease")
@@ -402,9 +404,9 @@ class CLFController(Controller):
 
         if self.cp_learning:
             cnstr_tightening = torch.linalg.norm(gradV.squeeze(1), ord = 2, dim = 1) * self.dynamics_model.cp_quantile # 2-norm * 2-norm
-            cnstr_tightening = cnstr_tightening.reshape(-1, 1)
         else:
             cnstr_tightening = torch.tensor([0.0]).type_as(x)
+        cnstr_tightening = cnstr_tightening.reshape(-1, 1)
 
         # Get the reference control input as well
         if u_ref is not None:
@@ -429,7 +431,7 @@ class CLFController(Controller):
             )
         else:
             return self._solve_CLF_QP_gurobi(
-                x, u_ref, V, Lf_V, Lg_V, relaxation_penalty
+                x, u_ref, V, Lf_V, Lg_V, cnstr_tightening, relaxation_penalty
             )
         
     def u(self, x):
