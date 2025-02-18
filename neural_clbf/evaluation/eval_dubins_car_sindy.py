@@ -14,50 +14,69 @@ matplotlib.use('TkAgg')
 
 def plot_dubins_cbf():
     # Load the checkpoint file. This should include the experiment suite used during training
-    log_file = "logs/dubins_car_sindy/commit_b3ccd6c/version_5/checkpoints/epoch=200-step=7235.ckpt"
+    log_file = "logs/dubins_car_sindy/commit_ec64684/version_2/checkpoints/epoch=202-step=7307.ckpt"
     
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
 
     # Tweak parameters
     #neural_controller.cbf_relaxation_penalty = 1e4
     #neural_controller.clf_lambda = 0.5
-    #neural_controller.controller_period = 0.01
+    neural_controller.controller_period = 0.01
 
-    V_contour_experiment = CLFContourExperiment(
+    V_contour_experiment_1 = CLFContourExperiment(
         "V_Contour",
-        domain = [(2.0, 10.0), (1.0, 7.0)],
+        domain = [(-5.0, 5.0), (-5.0, 5.0)],
         n_grid = 40,
         x_axis_index = 0,
         y_axis_index = 1,
         x_axis_label = "p_x",
         y_axis_label = "p_y",
     )
-    neural_controller.experiment_suite = ExperimentSuite([V_contour_experiment])
-    neural_controller.experiment_suite.run_all_and_plot(
-        neural_controller, display_plots = True
+    V_contour_experiment_2 = CLFContourExperiment(
+        "V_Contour",
+        domain = [(-5.0, 5.0), (-100/180*np.pi, 100/180*np.pi)],
+        n_grid = 40,
+        x_axis_index = 0,
+        y_axis_index = 2,
+        x_axis_label = "p_x",
+        y_axis_label = "theta",
     )
+    V_contour_experiment_3 = CLFContourExperiment(
+        "V_Contour",
+        domain = [(-5.0, 5.0), (-100/180*np.pi, 100/180*np.pi)],
+        n_grid = 40,
+        x_axis_index = 1,
+        y_axis_index = 2,
+        x_axis_label = "p_y",
+        y_axis_label = "theta",
+    )
+    neural_controller.experiment_suite = ExperimentSuite([V_contour_experiment_1, V_contour_experiment_2, V_contour_experiment_3])
+    neural_controller.experiment_suite.run_all_and_plot(neural_controller, display_plots = True)
 
     # Set up initial conditions for the sim
-    N = 50 # number of trajectories
-    start_x = torch.hstack((torch.rand(N,1) * 7 + 3, torch.rand(N,1) * 6 + 1, torch.rand(N,1) * 2 * np.pi - np.pi))
-  
-    start_x = start_x[torch.pow(start_x[:,0] - 5.0, 2) + torch.pow(start_x[:,1] - 4.0, 2) >= 3**2, :]
-    N = start_x.shape[0]
+    N = 10 # number of trajectories
+    start_x = torch.hstack((
+        torch.rand(N,1) * 2 - 5,
+        torch.rand(N,1) * 2 - 1,
+        torch.rand(N,1) * np.pi/5 - np.pi/10
+    ))
+    #start_x = start_x[torch.pow(start_x[:,0] - 0.0, 2) + torch.pow(start_x[:,1] - 0.0, 2) >= 3**2, :]
+    #N = start_x.shape[0]
 
-    T = 8.0
+    T = 10.0
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     
-    #solver_args = {"eps": 1e-8}
     u_history, x_history, V_history, p_history = clf_simulation_gurobi(neural_controller, start_x, T = T)
     
     fig, ax = plt.subplots(1, 1)
     ax.plot((x_history[:,0,:]).squeeze().T, (x_history[:,1,:]).squeeze().T)
-    obstacle = plt.Circle((5, 4), 2, color='r')
+    obstacle = plt.Circle((0, 0), 2, alpha=0.5, facecolor="red")
     ax.add_patch(obstacle)
     ax.plot()
     ax.set_ylabel("y")
     ax.set_xlabel("x")
+    ax.set_aspect('equal')
     ax.grid(True)
 
     fig, ax = plt.subplots(1, 1)
