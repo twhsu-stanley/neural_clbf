@@ -25,7 +25,7 @@ controller_period = 0.01
 
 start_x = torch.tensor(
     [
-        [9.0, 4.0, 0.0],
+        [-4, 0.0, 0.0],
     ]
 )
 simulation_dt = 0.01
@@ -50,9 +50,9 @@ def main(args):
 
     # Initialize the DataModule
     initial_conditions = [
-        (2.0, 10.0),  # x
-        (1.0, 7.0),  # y
-        (-3.14159, 3.14159),  # theta
+        (-5.0, 5.0),  # x
+        (-5.0, 5.0),  # y
+        (-0.1, 0.1),  # theta
     ]
     data_module = EpisodicDataModule(
         dynamics_model,
@@ -63,13 +63,13 @@ def main(args):
         max_points=20000,
         val_split=0.1,
         batch_size=batch_size,
-        #quotas={"safe": 0.4, "unsafe": 0.2},
+        #quotas={"safe": 0.5},
     )
 
     # Define the experiment suite
     V_contour_experiment = CLFContourExperiment(
         "V_Contour",
-        domain=[(2.0, 10.0), (1.0, 7.0)],
+        domain=[(-5.0, 5.0), (-5.0, 5.0)],
         n_grid=10,
         x_axis_index=DubinsCarSINDy.X,
         y_axis_index=DubinsCarSINDy.Y,
@@ -106,10 +106,10 @@ def main(args):
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=1.0,
-        primal_learning_rate=1e-3,
-        learn_shape_epochs=100,
-        cp_learning = True,
-        #use_relu=True,
+        primal_learning_rate=2e-3,
+        learn_shape_epochs=50,
+        cp_learning = False,
+        use_relu=True,
     )
 
     # Initialize the logger and trainer
@@ -118,7 +118,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=301 #gradient_clip_val = 0.5,
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251 #gradient_clip_val = 0.5,
     )
 
     # Train
