@@ -5,8 +5,7 @@ import numpy as np
 import matplotlib
 
 from neural_clbf.controllers import NeuralCBFController
-from neural_clbf.conformal_prediction.clf_cp_sim_utils import clf_simulation, create_clf_qp_cp_cvxpylayers_solver
-
+from neural_clbf.simulation.clf_sim_utils import clf_simulation, create_clf_qp_cp_cvxpylayers_solver
 
 matplotlib.use('TkAgg')
 
