@@ -450,11 +450,17 @@ def clf_simulation_gurobi(neural_controller, start_x, T):
         for i in range(n_sims):
             u_current = neural_controller.u(x_current[i, :].unsqueeze(0))
 
-            # Compute xdot using the nominal (learned) model
-            xdot = neural_controller.dynamics_model.closed_loop_dynamics(
-                x_current[i, :].unsqueeze(0),
-                u_current
-            )
+            # TODO: Compute xdot using the true model if cp_learning is true
+            if neural_controller.cp_learning:
+                xdot = neural_controller.dynamics_model.closed_loop_ground_truth_dynamics(
+                    x_current[i, :].unsqueeze(0),
+                    u_current
+                )
+            else:
+                xdot = neural_controller.dynamics_model.closed_loop_dynamics(
+                    x_current[i, :].unsqueeze(0),
+                    u_current
+                )
             u_history[i,:,t] = u_current.cpu().detach().numpy()
 
             V_current = neural_controller.V(x_current[i, :].unsqueeze(0))
