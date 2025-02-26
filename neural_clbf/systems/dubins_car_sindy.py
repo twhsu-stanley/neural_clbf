@@ -10,7 +10,7 @@ from .control_affine_system import ControlAffineSystem
 from neural_clbf.systems.utils import Scenario, ScenarioList, predict_tensor
 
 # Load the SINDy model ##########################################################################
-with open('./SINDy_models/model_dubins_car_sindy', 'rb') as file:
+with open('./SINDy_models/model_dubins_car_traj_sindy', 'rb') as file:
     model = pickle.load(file)
 
 feature_names = model["feature_names"]
@@ -158,7 +158,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         #safe_mask.logical_and_(h >= 33.75)
 
         # TODO: Try this new safe set
-        safe_mask.logical_and_(d >= 2.25)
+        safe_mask.logical_and_(d >= 1.0)
         safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] <= 70/180*np.pi)
         safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] >= -70/180*np.pi)
 
@@ -192,7 +192,7 @@ class DubinsCarSINDy(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         # TODO: verify if the goal_mask is not used at all
-        goal_mask = (torch.pow(x[:,DubinsCarSINDy.X] - 4.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 0.0, 2) <= 0.1)
+        goal_mask = (torch.pow(x[:,DubinsCarSINDy.X] - 4.5, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 0.0, 2) <= 0.1)
 
         return goal_mask
 
