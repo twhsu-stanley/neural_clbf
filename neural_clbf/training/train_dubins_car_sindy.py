@@ -20,7 +20,7 @@ from neural_clbf.training.utils import current_git_hash
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-batch_size = 256
+batch_size = 128
 controller_period = 0.01
 
 start_x = torch.tensor(
@@ -100,15 +100,15 @@ def main(args):
         scenarios,
         data_module,
         experiment_suite=experiment_suite,
-        cbf_hidden_layers=2,
+        cbf_hidden_layers=4,
         cbf_hidden_size=256,
         cbf_lambda=1.0,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=1.0,
-        primal_learning_rate=2e-3,
-        learn_shape_epochs=50,
-        cp_learning = False,
+        primal_learning_rate=5e-3,
+        learn_shape_epochs=80,
+        cp_learning = True,
         use_relu=True,
     )
 
@@ -118,7 +118,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251 #gradient_clip_val = 0.5,
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=301 #gradient_clip_val = 0.5,
     )
 
     # Train

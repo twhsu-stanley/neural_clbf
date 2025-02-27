@@ -158,7 +158,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         #safe_mask.logical_and_(h >= 33.75)
 
         # TODO: Try this new safe set
-        safe_mask.logical_and_(d >= 1.0)
+        safe_mask.logical_and_(d >= 3.0)
         safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] <= 70/180*np.pi)
         safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] >= -70/180*np.pi)
 
