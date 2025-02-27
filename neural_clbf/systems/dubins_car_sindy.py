@@ -76,8 +76,9 @@ class DubinsCarSINDy(ControlAffineSystem):
         self.cp_quantile = cp_quantile
         
         super().__init__(
-            nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios
+            nominal_params, dt=dt, controller_dt=controller_dt, scenarios=scenarios, use_linearized_controller=False
         )
+        self.P = torch.eye(self.n_dims)
 
     def validate_params(self, params: Scenario) -> bool:
         """Check if a given set of parameters is valid
