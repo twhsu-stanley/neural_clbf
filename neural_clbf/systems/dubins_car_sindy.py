@@ -117,14 +117,14 @@ class DubinsCarSINDy(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[DubinsCarSINDy.X] = 5.0
-        upper_limit[DubinsCarSINDy.Y] = 5.0
-        upper_limit[DubinsCarSINDy.THETA] = 100/180*np.pi
+        upper_limit[DubinsCarSINDy.X] = 6.0
+        upper_limit[DubinsCarSINDy.Y] = 6.0
+        upper_limit[DubinsCarSINDy.THETA] = 170/180*np.pi
 
         lower_limit = torch.ones(self.n_dims)
-        lower_limit[DubinsCarSINDy.X] = -5.0
-        lower_limit[DubinsCarSINDy.Y] = -5.0
-        lower_limit[DubinsCarSINDy.THETA] = -100/180*np.pi
+        lower_limit[DubinsCarSINDy.X] = -6.0
+        lower_limit[DubinsCarSINDy.Y] = -6.0
+        lower_limit[DubinsCarSINDy.THETA] = -170/180*np.pi
 
         return (upper_limit, lower_limit)
 
@@ -142,7 +142,7 @@ class DubinsCarSINDy(ControlAffineSystem):
     
     @property
     def goal_point(self):
-        return torch.tensor([[4.5, 0.0, 0.0]])
+        return torch.tensor([[5.0, 0.0, 0.0]])
     
     def safe_mask(self, x):
         """Return the mask of x indicating safe regions for the obstacle task
@@ -160,8 +160,8 @@ class DubinsCarSINDy(ControlAffineSystem):
 
         # TODO: Try this new safe set
         safe_mask.logical_and_(d >= 3.0)
-        safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] <= 70/180*np.pi)
-        safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] >= -70/180*np.pi)
+        safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] <= 100/180*np.pi)
+        safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] >= -100/180*np.pi)
 
         return safe_mask
 
@@ -181,8 +181,8 @@ class DubinsCarSINDy(ControlAffineSystem):
 
         # TODO: Try this new safe set
         unsafe_mask.logical_or_(d <= 0)
-        unsafe_mask.logical_or_(x[:,DubinsCarSINDy.THETA] > np.pi/2)
-        unsafe_mask.logical_or_(x[:,DubinsCarSINDy.THETA] < -np.pi/2)
+        unsafe_mask.logical_or_(x[:,DubinsCarSINDy.THETA] > 160/180*np.pi)
+        unsafe_mask.logical_or_(x[:,DubinsCarSINDy.THETA] < -160/180*np.pi)
 
         return unsafe_mask
 
@@ -193,7 +193,7 @@ class DubinsCarSINDy(ControlAffineSystem):
             x: a tensor of points in the state space
         """
         # TODO: verify if the goal_mask is not used at all
-        goal_mask = (torch.pow(x[:,DubinsCarSINDy.X] - 4.5, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 0.0, 2) <= 0.1)
+        goal_mask = (torch.pow(x[:,DubinsCarSINDy.X] - 5.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 0.0, 2) <= 0.1)
 
         return goal_mask
 

@@ -102,7 +102,7 @@ def main(args):
         experiment_suite=experiment_suite,
         cbf_hidden_layers=4,
         cbf_hidden_size=256,
-        cbf_lambda=1.0,
+        cbf_lambda=0.1,
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=1.0,
