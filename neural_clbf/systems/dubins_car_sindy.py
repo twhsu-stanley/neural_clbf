@@ -117,13 +117,13 @@ class DubinsCarSINDy(ControlAffineSystem):
         """
         # define upper and lower limits based around the nominal equilibrium input
         upper_limit = torch.ones(self.n_dims)
-        upper_limit[DubinsCarSINDy.X] = 6.0
-        upper_limit[DubinsCarSINDy.Y] = 6.0
+        upper_limit[DubinsCarSINDy.X] = 5.0
+        upper_limit[DubinsCarSINDy.Y] = 5.0
         upper_limit[DubinsCarSINDy.THETA] = 170/180*np.pi
 
         lower_limit = torch.ones(self.n_dims)
-        lower_limit[DubinsCarSINDy.X] = -6.0
-        lower_limit[DubinsCarSINDy.Y] = -6.0
+        lower_limit[DubinsCarSINDy.X] = -5.0
+        lower_limit[DubinsCarSINDy.Y] = -5.0
         lower_limit[DubinsCarSINDy.THETA] = -170/180*np.pi
 
         return (upper_limit, lower_limit)
