@@ -157,7 +157,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         safe_mask.logical_and_(d >= 3.0)
 
         # rectangular obstacle
-        safe_mask.logical_and_(np.logical_or(torch.abs(x[:,DubinsCarSINDy.X]) > 2, x[:,DubinsCarSINDy.Y] < -3))
+        safe_mask.logical_and_(torch.logical_or(torch.abs(x[:,DubinsCarSINDy.X]) > 2, x[:,DubinsCarSINDy.Y] < -3))
 
         # theta constraint
         safe_mask.logical_and_(x[:,DubinsCarSINDy.THETA] <= 80/180*np.pi)
@@ -178,7 +178,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         unsafe_mask.logical_or_(d <= 0)
 
         # rectangular obstacle
-        unsafe_mask.logical_or_(np.logical_and(torch.abs(x[:,DubinsCarSINDy.X]) < 1, x[:,DubinsCarSINDy.Y] > -2))
+        unsafe_mask.logical_or_(torch.logical_and(torch.abs(x[:,DubinsCarSINDy.X]) < 1, x[:,DubinsCarSINDy.Y] > -2))
 
         # theta constraint
         unsafe_mask.logical_or_(x[:,DubinsCarSINDy.THETA] > 90/180*np.pi)
