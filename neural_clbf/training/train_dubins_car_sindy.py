@@ -106,7 +106,7 @@ def main(args):
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=1.0,
-        primal_learning_rate=5e-3,
+        primal_learning_rate=3e-3,
         learn_shape_epochs=50,
         cp_learning = True,
         use_relu=True,
@@ -118,7 +118,7 @@ def main(args):
         name=f"commit_{current_git_hash()}",
     )
     trainer = pl.Trainer.from_argparse_args(
-        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=301 #gradient_clip_val = 0.5,
+        args, logger=tb_logger, reload_dataloaders_every_epoch=True, max_epochs=251 #gradient_clip_val = 0.5,
     )
 
     # Train
