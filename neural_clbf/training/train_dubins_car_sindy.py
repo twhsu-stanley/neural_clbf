@@ -106,7 +106,7 @@ def main(args):
         controller_period=controller_period,
         cbf_relaxation_penalty=1e4,
         scale_parameter=1.0,
-        primal_learning_rate=3e-3,
+        primal_learning_rate=5e-3,
         learn_shape_epochs=50,
         cp_learning = True,
         use_relu=True,
