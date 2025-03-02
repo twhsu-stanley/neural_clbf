@@ -14,7 +14,7 @@ matplotlib.use('TkAgg')
 
 def plot_dubins_cbf():
     # Load the checkpoint file. This should include the experiment suite used during training
-    log_file = "logs/dubins_car_sindy/commit_52172ea/version_0/checkpoints/epoch=300-step=21370.ckpt"
+    # Circular obstacle worked
     log_file = "logs/dubins_car_sindy/commit_c879c51/version_0/checkpoints/epoch=100-step=7170.ckpt"
     
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
