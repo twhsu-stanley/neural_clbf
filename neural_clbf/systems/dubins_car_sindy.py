@@ -154,10 +154,10 @@ class DubinsCarSINDy(ControlAffineSystem):
 
         # circular obstacle
         d = torch.pow(x[:,DubinsCarSINDy.X] - 0.0, 2) + torch.pow(x[:,DubinsCarSINDy.Y] - 0.0, 2) - 4
-        safe_mask.logical_and_(d >= 3.0)
+        safe_mask.logical_and_(d >= 2.5)
 
         # rectangular obstacle
-        safe_mask.logical_and_(torch.logical_or(torch.abs(x[:,DubinsCarSINDy.X]) > 2.5, x[:,DubinsCarSINDy.Y] < -1))
+        #safe_mask.logical_and_(torch.logical_or(torch.abs(x[:,DubinsCarSINDy.X]) > 2.5, x[:,DubinsCarSINDy.Y] < -1))
         #safe_mask.logical_and_(x[:,DubinsCarSINDy.Y] <= 3)
 
         # theta constraint
@@ -179,7 +179,7 @@ class DubinsCarSINDy(ControlAffineSystem):
         unsafe_mask.logical_or_(d <= 0)
 
         # rectangular obstacle
-        unsafe_mask.logical_or_(torch.logical_and(torch.abs(x[:,DubinsCarSINDy.X]) < 2, x[:,DubinsCarSINDy.Y] > 0))
+        #unsafe_mask.logical_or_(torch.logical_and(torch.abs(x[:,DubinsCarSINDy.X]) < 2, x[:,DubinsCarSINDy.Y] > 0))
         #unsafe_mask.logical_or_(x[:,DubinsCarSINDy.Y] > 4)
 
         # theta constraint
