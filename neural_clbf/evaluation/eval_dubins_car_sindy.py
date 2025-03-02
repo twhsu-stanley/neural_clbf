@@ -21,7 +21,7 @@ def plot_dubins_cbf():
 
     # Tweak parameters
     #neural_controller.cbf_relaxation_penalty = 1e9
-    neural_controller.clf_lambda = 0.1
+    #neural_controller.clf_lambda = 0.1
     #neural_controller.controller_period = 0.001
     #neural_controller.disable_gurobi = True
 
@@ -65,7 +65,7 @@ def plot_dubins_cbf():
     #start_x = start_x[torch.pow(start_x[:,0] - 0.0, 2) + torch.pow(start_x[:,1] - 0.0, 2) >= 3**2, :]
     #N = start_x.shape[0] 
 
-    T = 15
+    T = 5
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     
