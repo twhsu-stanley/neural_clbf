@@ -15,7 +15,10 @@ matplotlib.use('TkAgg')
 def plot_dubins_cbf():
     # Load the checkpoint file. This should include the experiment suite used during training
     # Circular obstacle worked
+    # CP
     log_file = "logs/dubins_car_sindy/commit_c879c51/version_0/checkpoints/epoch=100-step=7170.ckpt"
+    # Non CP
+    log_file = "logs/dubins_car_sindy/commit_84ef882/version_0/checkpoints/epoch=100-step=7170.ckpt"
     
     neural_controller = NeuralCBFController.load_from_checkpoint(log_file)
 
@@ -58,14 +61,14 @@ def plot_dubins_cbf():
     # Set up initial conditions for the sim
     N = 10 # number of trajectories
     start_x = torch.hstack((
-        torch.rand(N,1) * 1 - 5,
+        torch.rand(N,1) * 1 - 4,
         torch.rand(N,1) * 1 - 0.5,
         torch.rand(N,1) * 0/180*np.pi - 0/180*np.pi
     ))
     #start_x = start_x[torch.pow(start_x[:,0] - 0.0, 2) + torch.pow(start_x[:,1] - 0.0, 2) >= 3**2, :]
     #N = start_x.shape[0] 
 
-    T = 5
+    T = 10
     delta_t = neural_controller.dynamics_model.dt
     num_timesteps = int(T // delta_t)
     
